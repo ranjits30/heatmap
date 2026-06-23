@@ -4,42 +4,6 @@ const LEVELS = ['', 'Novice', 'Aware', 'Practitioner', 'Proficient', 'Expert'];
 
 const STACKS = [
   {
-    id: 'digital',
-    name: 'Digital Tech Stack',
-    color: '#2E308E',
-    bg: 'linear-gradient(90deg,#2E308E,#2F78C4)',
-    skills: [
-      { id: 'appdev', name: 'App Dev', covers: 'Full-stack dev, frameworks, APIs' },
-      { id: 'qea', name: 'QEA', covers: 'Quality engineering & assurance' },
-      { id: 'cloud', name: 'Cloud', covers: 'Cloud platforms, services' },
-      { id: 'devops', name: 'DevOps', covers: 'CI/CD, infrastructure, deployment' },
-      { id: 'cyber', name: 'Cyber', covers: 'Security, threat management' },
-      { id: 'data', name: 'Data', covers: 'Data engineering, analytics' },
-    ],
-  },
-  {
-    id: 'ai',
-    name: 'AI Stack',
-    color: '#06C7CC',
-    bg: 'linear-gradient(90deg,#2F78C4,#06C7CC)',
-    skills: [
-      { id: 'aifound', name: 'AI Found.', covers: 'AI fundamentals, concepts' },
-      { id: 'prompteng', name: 'Prompt', covers: 'Prompt engineering, optimization' },
-      { id: 'contexteng', name: 'Context', covers: 'Context engineering, RAG' },
-      { id: 'agentic', name: 'Agentic', covers: 'Agentic AI, autonomous systems' },
-    ],
-  },
-  {
-    id: 'behavioural',
-    name: 'Behavioural Stack',
-    color: '#7373D8',
-    bg: 'linear-gradient(90deg,#7373D8,#2E308E)',
-    skills: [
-      { id: 'voice', name: 'Voice', covers: 'Communication, presentation' },
-      { id: 'profskills', name: 'Pro Skills', covers: 'Professional development' },
-    ],
-  },
-  {
     id: 'programming',
     name: 'Programming Languages',
     color: '#2F78C4',
@@ -401,6 +365,72 @@ const STACKS = [
       },
     ],
   },
+  {
+    id: 'voiceaccent',
+    name: 'Voice and Accent',
+    color: '#7373D8',
+    bg: 'linear-gradient(90deg,#7373D8,#06C7CC)',
+    skills: [
+      {
+        id: 'voice_clarity',
+        name: 'Voice Clarity',
+        covers: 'Pronunciation, audible, steady speech, articulation of words',
+      },
+      {
+        id: 'fluency_intonation',
+        name: 'Fluency, Intonation & Modulation',
+        covers: 'Pace of speech',
+      },
+      {
+        id: 'accent_neutralization',
+        name: 'Accent Neutralization',
+        covers: 'Understanding global accents, intelligibility for global audiences',
+      },
+    ],
+  },
+  {
+    id: 'corebehavioural',
+    name: 'Core Behavioural Skills',
+    color: '#7373D8',
+    bg: 'linear-gradient(90deg,#7373D8,#2E308E)',
+    skills: [
+      {
+        id: 'communication',
+        name: 'Communication',
+        covers: 'Verbal and written communication, presentation, active listening, business communication',
+      },
+      {
+        id: 'interpersonal',
+        name: 'Interpersonal & Collaboration',
+        covers: 'Teamwork, relationship building, conflict resolution, stakeholder management, networking',
+      },
+      {
+        id: 'emotional_intelligence',
+        name: 'Emotional Intelligence',
+        covers: 'Self-awareness, self-regulation, empathy, social awareness, resilience, adaptability',
+      },
+      {
+        id: 'cognitive',
+        name: 'Cognitive',
+        covers: 'Critical thinking, analytical thinking, problem solving, logical reasoning, creative thinking, design thinking, systems thinking, decision making',
+      },
+      {
+        id: 'professional_effectiveness',
+        name: 'Professional Effectiveness',
+        covers: 'Time management, ownership & accountability, attention to detail, professionalism, learning agility, execution excellence',
+      },
+      {
+        id: 'learning_facilitation_influence',
+        name: 'Learning, Facilitation & Influence',
+        covers: 'Story telling, facilitation, instructional communication, audience engagement, coaching & mentoring, influencing skills, feedback skills',
+      },
+      {
+        id: 'leadership_ownership',
+        name: 'Leadership & Ownership',
+        covers: 'Strategic thinking, change agility, decision ownership, leadership presence, delegation & coordination',
+      },
+    ],
+  },
 ];
 
 const ALL_SKILLS = STACKS.flatMap((s) => s.skills);
@@ -426,6 +456,7 @@ function HeatMapPage() {
     empid: '',
   });
   const [ratings, setRatings] = useState<{ [key: string]: number }>({});
+  const [primaryCovers, setPrimaryCovers] = useState<{ [key: string]: string }>({});
   const [toastMsg, setToastMsg] = useState('');
   const [showResults, setShowResults] = useState(false);
 
@@ -466,9 +497,16 @@ function HeatMapPage() {
 
   const resetRatings = () => {
     setRatings({});
+    setPrimaryCovers({});
     setShowResults(false);
     showToast('Ratings cleared');
   };
+
+  const coverOptions = (covers?: string) =>
+    (covers || '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
@@ -479,6 +517,26 @@ function HeatMapPage() {
   const pct = Math.round((rated / TOTAL) * 100);
   const vals = ALL_SKILLS.map((s) => ratings[s.id]).filter((v) => v !== undefined && v > 0);
   const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
+  const stackTotal = (stackId: string) =>
+    STACKS.find((stack) => stack.id === stackId)?.skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0) || 0;
+
+  const countSkillsInStacks = (stackIds: string[]): number => {
+    let count = 0;
+    stackIds.forEach((id) => {
+      const stack = STACKS.find((s) => s.id === id);
+      if (stack) count += stack.skills.length;
+    });
+    return count;
+  };
+
+  const calculateMaxScore = (stackIds: string[]): number => countSkillsInStacks(stackIds) * 5;
+
+  const calculateCategoryScore = (stackIds: string[]): number =>
+    stackIds.reduce((sum, id) => sum + stackTotal(id), 0);
+
+  const calculatePercentage = (score: number, maxScore: number): string => {
+    return maxScore === 0 ? '0%' : `${Math.round((score / maxScore) * 100)}%`;
+  };
 
   const gaps = ALL_SKILLS.filter((s) => ratings[s.id] > 0 && ratings[s.id] < 3).sort(
     (a, b) => (ratings[a.id] || 0) - (ratings[b.id] || 0)
@@ -537,7 +595,7 @@ function HeatMapPage() {
                           name="name"
                           value={profile.name}
                           onChange={handleProfileChange}
-                          placeholder="Your name"
+                          placeholder="e.g. Rakesh Kumar"
                         />
                       </div>
                       <div className="field">
@@ -560,7 +618,7 @@ function HeatMapPage() {
                           name="bu"
                           value={profile.bu}
                           onChange={handleProfileChange}
-                          placeholder="BU"
+                          placeholder="e.g Learning & Development"
                         />
                       </div>
                       <div className="field">
@@ -655,7 +713,30 @@ function HeatMapPage() {
                             {stack.skills.map((skill) => (
                               <tr key={skill.id}>
                                 <td className="sname">{skill.name}</td>
-                                <td style={{ fontSize: '11px', color: 'var(--gray-dk)' }}>{skill.covers || ''}</td>
+                                <td style={{ fontSize: '11px', color: 'var(--gray-dk)' }}>
+                                  <select
+                                    value={primaryCovers[skill.id] || coverOptions(skill.covers)[0] || ''}
+                                    onChange={(e) =>
+                                      setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
+                                    }
+                                    style={{
+                                      width: '100%',
+                                      maxWidth: '240px',
+                                      padding: '6px 8px',
+                                      borderRadius: '6px',
+                                      border: '1px solid var(--gray-lt)',
+                                      background: 'white',
+                                      color: 'var(--gray-dk)',
+                                      fontSize: '11px',
+                                    }}
+                                  >
+                                    {coverOptions(skill.covers).map((cover) => (
+                                      <option key={cover} value={cover}>
+                                        {cover}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
                                 <td style={{ textAlign: 'center' }}>
                                   <button
                                     className={`rpip ${
@@ -753,53 +834,105 @@ function HeatMapPage() {
                   >
                     ✓ Assessment Complete
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
-                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                        Digital Stack Score
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--a3m)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>
+                      Technical
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          Digital Stack Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}/{calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum']), calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum']))}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                        {STACKS[0].skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0)}
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          Cloud & Infra Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['cloudinfra'])}/{calculateMaxScore(['cloudinfra'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['cloudinfra']), calculateMaxScore(['cloudinfra']))}
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          Cybersec Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['cybersecuritystack'])}/{calculateMaxScore(['cybersecuritystack'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['cybersecuritystack']), calculateMaxScore(['cybersecuritystack']))}
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          Data Engg, Analytics & ML Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['dataengml'])}/{calculateMaxScore(['dataengml'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['dataengml']), calculateMaxScore(['dataengml']))}
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          Products & Platforms Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['industryplatforms'])}/{calculateMaxScore(['industryplatforms'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['industryplatforms']), calculateMaxScore(['industryplatforms']))}
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          AI Stack Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['aigenaiaagentic'])}/{calculateMaxScore(['aigenaiaagentic'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['aigenaiaagentic']), calculateMaxScore(['aigenaiaagentic']))}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                        AI Stack Score
-                      </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                        {STACKS[1].skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0)}
-                      </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--a3m)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>
+                      Behavioural
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                        Cloud & Infra Score
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          Core BH Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['corebehavioural'])}/{calculateMaxScore(['corebehavioural'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['corebehavioural']), calculateMaxScore(['corebehavioural']))}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                        {STACKS[13].skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0)}
-                      </div>
-                    </div>
-                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                        Cybersecurity Score
-                      </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                        {STACKS[14].skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0)}
-                      </div>
-                    </div>
-                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                        Data Engg, Analytics & ML Score
-                      </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                        {STACKS[15].skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0)}
-                      </div>
-                    </div>
-                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                        Products & Platforms Score
-                      </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                        {STACKS[16].skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0)}
+                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          V&A Score
+                        </div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
+                          {calculateCategoryScore(['voiceaccent'])}/{calculateMaxScore(['voiceaccent'])}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                          {calculatePercentage(calculateCategoryScore(['voiceaccent']), calculateMaxScore(['voiceaccent']))}
+                        </div>
                       </div>
                     </div>
                   </div>

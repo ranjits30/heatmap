@@ -1,0 +1,32 @@
+# Java
+**/target/
+**/out/
+*.class
+*.log
+
+# Node
+node_modules/
+dist/
+.build/
+.vscode/
+.DS_Store
+
+# IDE
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# Maven
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.versionsBackup
+**/pom.xml.next
+**/release.properties
+
+# Spring Boot
+.springBeans
+spring.log
+
+# VS Code
+.vscode/

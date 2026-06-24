@@ -53,10 +53,11 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", user.getRoles().stream().map(Role::getName).collect(Collectors.toList()));
+        java.util.List<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toList());
+        claims.put("roles", roles);
 
         String token = jwtService.generateToken(user.getUsername(), claims);
-        return new AuthResponse(token);
+        return new AuthResponse(token, roles);
     }
 
     @PostMapping("/register")
@@ -72,9 +73,10 @@ public class AuthController {
         userRepository.save(user);
 
         Map<String, Object> claims = new HashMap<>();
-        claims.put("roles", user.getRoles().stream().map(Role::getName).collect(Collectors.toList()));
+        java.util.List<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toList());
+        claims.put("roles", roles);
 
         String token = jwtService.generateToken(user.getUsername(), claims);
-        return new AuthResponse(token);
+        return new AuthResponse(token, roles);
     }
 }

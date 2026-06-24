@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { clearAuthSession, getAuthRoles } from '../auth';
 
 const LEVELS = ['', 'Novice', 'Aware', 'Practitioner', 'Proficient', 'Expert'];
 
@@ -476,6 +478,223 @@ const BEHAVIOURAL_STACKS = STACKS_WITH_OTHERS.filter((stack) =>
 const ALL_SKILLS = STACKS_WITH_OTHERS.flatMap((s) => s.skills);
 const TOTAL = ALL_SKILLS.length;
 
+type SkillRatings = { [key: string]: number };
+
+type ManagerEmployee = {
+  id: string;
+  employeeId: string;
+  name: string;
+  designation: string;
+  department: string;
+  location: string;
+  grade?: string;
+  skills: SkillRatings;
+  submittedAt?: string;
+};
+
+const MANAGER_EMPLOYEES: ManagerEmployee[] = [
+  {
+    id: 'emp-001',
+    employeeId: 'EMP001',
+    name: 'Rakesh Kumar',
+    designation: 'Full Stack Lead',
+    department: 'Technology',
+    location: 'Chennai',
+    grade: 'Senior Manager',
+    skills: {
+      programming: 5,
+      frontend: 5,
+      backend: 4,
+      api: 4,
+      database: 4,
+      architecture: 4,
+      testing: 4,
+      devopsstack: 3,
+      agilescrum: 4,
+      cloudinfra: 3,
+      voiceaccent: 4,
+      corebehavioural: 4,
+    },
+  },
+  {
+    id: 'emp-002',
+    employeeId: 'EMP002',
+    name: 'Ananya Iyer',
+    designation: 'Data Engineer',
+    department: 'Data & Analytics',
+    location: 'Bangalore',
+    grade: 'Manager',
+    skills: {
+      dataengml: 5,
+      database: 4,
+      backend: 3,
+      cloudinfra: 3,
+      api: 3,
+      industryplatforms: 2,
+      agilescrum: 3,
+      voiceaccent: 4,
+      corebehavioural: 4,
+    },
+  },
+  {
+    id: 'emp-003',
+    employeeId: 'EMP003',
+    name: 'Salman Khan',
+    designation: 'Platform Engineer',
+    department: 'Operations',
+    location: 'Pune',
+    grade: 'Senior Associate',
+    skills: {
+      devopsstack: 5,
+      cloudinfra: 5,
+      backend: 4,
+      database: 3,
+      testing: 3,
+      cybersecuritystack: 4,
+      architecture: 3,
+      voiceaccent: 3,
+      corebehavioural: 4,
+    },
+  },
+  {
+    id: 'emp-004',
+    employeeId: 'EMP004',
+    name: 'Priya Nair',
+    designation: 'Security Analyst',
+    department: 'Cybersecurity',
+    location: 'Hyderabad',
+    grade: 'Associate Director',
+    skills: {
+      cybersecuritystack: 5,
+      cloudinfra: 4,
+      api: 3,
+      database: 3,
+      architecture: 3,
+      testing: 4,
+      voiceaccent: 5,
+      corebehavioural: 5,
+      agilescrum: 3,
+    },
+  },
+  {
+    id: 'emp-005',
+    employeeId: 'EMP005',
+    name: 'Rahul Verma',
+    designation: 'Enterprise Consultant',
+    department: 'Business Solutions',
+    location: 'Mumbai',
+    grade: 'Director',
+    skills: {
+      industryplatforms: 5,
+      backend: 3,
+      api: 4,
+      architecture: 4,
+      agilescrum: 4,
+      cloudinfra: 3,
+      corebehavioural: 4,
+      voiceaccent: 4,
+      dataengml: 2,
+    },
+  },
+  {
+    id: 'emp-006',
+    employeeId: 'EMP006',
+    name: 'Meera Singh',
+    designation: 'AI Engineer',
+    department: 'AI & Innovation',
+    location: 'Noida',
+    grade: 'Senior Associate',
+    skills: {
+      aigenaiaagentic: 5,
+      dataengml: 4,
+      programming: 4,
+      backend: 3,
+      api: 3,
+      cloudinfra: 3,
+      corebehavioural: 4,
+      voiceaccent: 4,
+      testing: 3,
+    },
+  },
+  {
+    id: 'emp-007',
+    employeeId: 'EMP007',
+    name: 'Arun Das',
+    designation: 'QA Lead',
+    department: 'Quality Engineering',
+    location: 'Kolkata',
+    grade: 'Manager',
+    skills: {
+      testing: 5,
+      programming: 4,
+      frontend: 4,
+      backend: 3,
+      devopsstack: 3,
+      agilescrum: 4,
+      corebehavioural: 4,
+      voiceaccent: 4,
+      architecture: 3,
+    },
+  },
+  {
+    id: 'emp-008',
+    employeeId: 'EMP008',
+    name: 'Deepa Menon',
+    designation: 'UI Architect',
+    department: 'Product Engineering',
+    location: 'Trivandrum',
+    grade: 'Senior Manager',
+    skills: {
+      frontend: 5,
+      programming: 4,
+      api: 4,
+      architecture: 4,
+      database: 3,
+      agilescrum: 3,
+      corebehavioural: 4,
+      voiceaccent: 5,
+      mobile: 4,
+    },
+  },
+];
+
+type ManagerEmployeeApi = {
+  id: number;
+  employeeId: string;
+  name: string;
+  designation?: string;
+  department?: string;
+  location?: string;
+  submittedAt?: string;
+  skillRatings?: SkillRatings;
+};
+
+const getEmployeeMetrics = (employee: ManagerEmployee) => {
+  const ratedEntries = Object.entries(employee.skills).filter(([, score]) => score > 0);
+  const totalScore = ratedEntries.reduce((sum, [, score]) => sum + score, 0);
+  const maxScore = ratedEntries.length * 5;
+  const averageScore = ratedEntries.length ? totalScore / ratedEntries.length : 0;
+  const percentage = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
+  const strongSkills = ratedEntries.filter(([, score]) => score >= 4).length;
+  const topSkills = ratedEntries
+    .filter(([skillId]) => !skillId.toLowerCase().endsWith('_others') && skillId.toLowerCase() !== 'others')
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([skillId, score]) => ({ skillId, score }));
+
+  return {
+    totalScore,
+    maxScore,
+    percentage,
+    averageScore,
+    ratedSkills: ratedEntries.length,
+    strongSkills,
+    topSkills,
+  };
+};
+
+const SKILL_NAME_BY_ID = Object.fromEntries(ALL_SKILLS.map((skill) => [skill.id, skill.name]));
+
 function scColor(v: number): string {
   return [
     '#D0D0CE',
@@ -487,8 +706,11 @@ function scColor(v: number): string {
   ][v || 0];
 }
 
-function HeatMapPage() {
-  const [mode, setMode] = useState('educator'); // 'educator' or 'manager'
+function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 'manager' } = {}) {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<'educator' | 'manager'>(initialMode);
+  const authRoles = getAuthRoles();
+  const isAdmin = authRoles.includes('ROLE_ADMIN');
   const [activeSection, setActiveSection] = useState<'technical' | 'behaviourial'>('technical');
   const [sectionCardIndex, setSectionCardIndex] = useState({
     technical: 0,
@@ -504,18 +726,95 @@ function HeatMapPage() {
   const [primaryCovers, setPrimaryCovers] = useState<{ [key: string]: string }>({});
   const [toastMsg, setToastMsg] = useState('');
   const [showResults, setShowResults] = useState(false);
+  const [managerEmployees, setManagerEmployees] = useState<ManagerEmployee[]>(MANAGER_EMPLOYEES);
+  const [managerSearch, setManagerSearch] = useState('');
+  const [managerCategory, setManagerCategory] = useState('');
+  const [managerRatingSkill, setManagerRatingSkill] = useState('');
+  const [managerRatingMin, setManagerRatingMin] = useState('4');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (isAdmin && mode !== 'manager') {
+      setMode('manager');
+    }
+
+    const loadManagerEmployees = async () => {
+      try {
+        const response = await fetch('/api/admin/employees');
+        if (!response.ok) {
+          throw new Error(`Failed to load employees: ${response.status}`);
+        }
+
+        const data: ManagerEmployeeApi[] = await response.json();
+        if (cancelled || !Array.isArray(data)) {
+          return;
+        }
+
+        const mappedEmployees = data.map((employee) => ({
+          id: String(employee.id),
+          employeeId: employee.employeeId,
+          name: employee.name,
+          designation: employee.designation || '',
+          department: employee.department || '',
+          location: employee.location || '',
+          grade: employee.designation || '',
+          skills: employee.skillRatings || {},
+          submittedAt: employee.submittedAt,
+        }));
+
+        if (mappedEmployees.length > 0) {
+          setManagerEmployees(mappedEmployees);
+        }
+      } catch {
+        if (!cancelled) {
+          setManagerEmployees(MANAGER_EMPLOYEES);
+        }
+      }
+    };
+
+    loadManagerEmployees();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, mode]);
 
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!profile.name || !profile.grade) {
       showToast('Please enter your name and grade');
       return;
     }
-    showToast(`Profile saved: ${profile.name}`);
+
+    try {
+      const response = await fetch('/api/assessments/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId: profile.empid,
+          name: profile.name,
+          designation: profile.grade,
+          department: profile.bu,
+          location: '',
+          ratings: {},
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save profile');
+      }
+
+      showToast(`Profile saved to database: ${profile.name}`);
+    } catch {
+      showToast('Unable to save profile');
+    }
   };
 
   const setRating = (id: string, score: number) => {
@@ -526,7 +825,7 @@ function HeatMapPage() {
     setRatings((prev) => ({ ...prev, [id]: score }));
   };
 
-  const submitRatings = () => {
+  const submitRatings = async () => {
     if (!profile.name || !profile.grade) {
       showToast('Save your profile first');
       return;
@@ -536,8 +835,31 @@ function HeatMapPage() {
       showToast(`Rate all ${TOTAL} skills first — ${TOTAL - rated} remaining`);
       return;
     }
-    setShowResults(true);
-    showToast('✓ Ratings submitted successfully!');
+    try {
+      const response = await fetch('/api/assessments/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId: profile.empid,
+          name: profile.name,
+          designation: profile.grade,
+          department: profile.bu,
+          location: '',
+          ratings,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit ratings');
+      }
+
+      setShowResults(true);
+      showToast('✓ Ratings submitted to database successfully!');
+    } catch {
+      showToast('Unable to submit ratings');
+    }
   };
 
   const resetRatings = () => {
@@ -617,6 +939,40 @@ function HeatMapPage() {
     }
   };
 
+  const managerFilteredEmployees = managerEmployees.filter((employee) => {
+    const metrics = getEmployeeMetrics(employee);
+    const searchText = managerSearch.trim().toLowerCase();
+    const matchesSearch =
+      !searchText ||
+      [employee.name, employee.employeeId, employee.designation, employee.department, employee.location, employee.grade]
+        .join(' ')
+        .toLowerCase()
+        .includes(searchText) ||
+      Object.keys(employee.skills).some((skillId) => {
+        const skillName = SKILL_NAME_BY_ID[skillId] || skillId;
+        return skillName.toLowerCase().includes(searchText);
+      });
+    const matchesCategory =
+      !managerCategory ||
+      STACKS_WITH_OTHERS.find((stack) => stack.id === managerCategory)?.skills.some(
+        (skill) => (employee.skills[skill.id] || 0) > 0
+      );
+    const ratingMin = Number(managerRatingMin || '0');
+    const matchesRating =
+      !managerRatingSkill ||
+      (employee.skills[managerRatingSkill] || 0) >= ratingMin;
+
+    return matchesSearch && matchesCategory && matchesRating;
+  });
+
+  const managerCategoryOptions = STACKS_WITH_OTHERS.map((stack) => ({ id: stack.id, name: stack.name }));
+  const managerSkillOptions = ALL_SKILLS.map((skill) => ({ id: skill.id, name: skill.name }));
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <>
       <div className="topbar">
@@ -628,20 +984,25 @@ function HeatMapPage() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div className="mode-toggle">
-            <button
-              className={`mode-btn ${mode === 'educator' ? 'active' : ''}`}
-              onClick={() => setMode('educator')}
-            >
-              Educator
-            </button>
-            <button
-              className={`mode-btn ${mode === 'manager' ? 'active' : ''}`}
-              onClick={() => setMode('manager')}
-            >
-              Manager
-            </button>
-          </div>
+          {isAdmin && authRoles.includes('ROLE_EMPLOYEE') ? (
+            <div className="mode-toggle">
+              <button
+                className={`mode-btn ${mode === 'educator' ? 'active' : ''}`}
+                onClick={() => setMode('educator')}
+              >
+                Educator
+              </button>
+              <button
+                className={`mode-btn ${mode === 'manager' ? 'active' : ''}`}
+                onClick={() => setMode('manager')}
+              >
+                Manager
+              </button>
+            </div>
+          ) : null}
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
 
@@ -724,7 +1085,7 @@ function HeatMapPage() {
                       ></div>
                     </div>
                   </div>
-                  <div className="prog-pct">{pct}%</div>
+                  <div className="prog-pct" style={{ fontSize: '18px', fontWeight: 700, lineHeight: 1.1 }}>{pct}%</div>
                   <div className="prog-stats">
                     <div className="pstat">
                       <div className="v">{rated}</div>
@@ -999,7 +1360,7 @@ function HeatMapPage() {
                       <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                         Overall Score
                       </div>
-                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
+                      <div style={{ fontSize: '22px', fontWeight: '700', color: 'white', marginBottom: '4px', lineHeight: 1.1 }}>
                         {calculatePercentage(overallScore, overallMaxScore)}
                       </div>
                       <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
@@ -1128,14 +1489,153 @@ function HeatMapPage() {
           <div className="layout">
             <div className="ph-eyebrow">Dashboard</div>
             <div className="ph-title">Manager Dashboard</div>
-            <div className="ph-desc">Team skill assessment overview</div>
+            <div className="ph-desc">Team skill assessment overview with employee search and rating filters.</div>
+
             <div className="card" style={{ marginTop: '1.5rem' }}>
               <div className="card-body">
-                <p style={{ color: 'var(--gray-md)', textAlign: 'center', padding: '2rem' }}>
-                  Manager dashboard data would be loaded here from the backend
-                </p>
+                <div className="field-row2">
+                  <div className="field">
+                    <label>Search employees or skills</label>
+                    <input
+                      type="text"
+                      value={managerSearch}
+                      onChange={(e) => setManagerSearch(e.target.value)}
+                      placeholder="Name, employee ID, skill, designation, department"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Category</label>
+                    <select value={managerCategory} onChange={(e) => setManagerCategory(e.target.value)}>
+                      <option value="">All categories</option>
+                      {managerCategoryOptions.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="field-row2">
+                  <div className="field">
+                    <label>Advanced rating skill</label>
+                    <select value={managerRatingSkill} onChange={(e) => setManagerRatingSkill(e.target.value)}>
+                      <option value="">Any skill</option>
+                      {managerSkillOptions.map((skill) => (
+                        <option key={skill.id} value={skill.id}>
+                          {skill.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Minimum rating</label>
+                    <select value={managerRatingMin} onChange={(e) => setManagerRatingMin(e.target.value)}>
+                      <option value="5">5</option>
+                      <option value="4">4</option>
+                      <option value="3">3</option>
+                      <option value="2">2</option>
+                      <option value="1">1</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <div className="prog-strip" style={{ marginTop: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>Employees</div>
+                <div className="prog-pct" style={{ minWidth: 'auto' }}>{managerFilteredEmployees.length}</div>
+              </div>
+              <div className="pstat">
+                <div className="v">{managerFilteredEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) ? Math.round(managerFilteredEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) / managerFilteredEmployees.length) : 0}%</div>
+                <div className="l">Avg score</div>
+              </div>
+              <div className="pstat">
+                <div className="v">{managerFilteredEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).strongSkills, 0)}</div>
+                <div className="l">Practitioner skills</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              {managerFilteredEmployees.map((employee) => {
+                const metrics = getEmployeeMetrics(employee);
+
+                return (
+                  <div key={employee.id} className="card">
+                    <div className="card-head">
+                      <div className="card-title">{employee.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--gray-md)', fontWeight: '600' }}>{employee.employeeId}</div>
+                    </div>
+                    <div className="card-body">
+                      <div style={{ display: 'grid', gap: '0.45rem', marginBottom: '0.9rem' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--gray-dk)' }}>{employee.designation}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--gray-md)' }}>
+                          {employee.department} • {employee.location}
+                        </div>
+                        {employee.grade && employee.grade !== employee.designation && (
+                          <div style={{ fontSize: '11px', color: 'var(--gray-md)' }}>{employee.grade}</div>
+                        )}
+                      </div>
+                      <div className="prog-strip" style={{ marginBottom: '0.9rem' }}>
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>Score</div>
+                          <div className="prog-pct" style={{ minWidth: 'auto' }}>{metrics.percentage}%</div>
+                        </div>
+                        <div className="pstat">
+                          <div className="v">{metrics.totalScore}</div>
+                          <div className="l">Marks</div>
+                        </div>
+                        <div className="pstat">
+                          <div className="v">{metrics.ratedSkills}</div>
+                          <div className="l">Skills</div>
+                        </div>
+                        <div className="pstat">
+                          <div className="v">{metrics.strongSkills}</div>
+                          <div className="l">Practitioner</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--gray-md)', marginBottom: '0.5rem', textTransform: 'uppercase', fontWeight: '700' }}>
+                        Top skills
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {metrics.topSkills
+                          .filter((skill) => {
+                            const normalizedSkillId = skill.skillId.trim().toLowerCase();
+                            return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
+                          })
+                          .map((skill) => (
+                          <span
+                            key={skill.skillId}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 8px',
+                              borderRadius: '999px',
+                              background: 'var(--gray-ltest)',
+                              fontSize: '11px',
+                              color: 'var(--primary)',
+                            }}
+                          >
+                            {SKILL_NAME_BY_ID[skill.skillId] || skill.skillId}: {skill.score}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {!managerFilteredEmployees.length && (
+              <div className="card" style={{ marginTop: '1rem' }}>
+                <div className="card-body">
+                  <p style={{ color: 'var(--gray-md)', textAlign: 'center', padding: '2rem' }}>
+                    No employees match the current filters.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

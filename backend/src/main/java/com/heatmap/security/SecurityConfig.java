@@ -4,6 +4,7 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,7 +38,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-            .antMatchers("/api/auth/**", "/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
+            .antMatchers("/api/auth/**", "/api/assessments/**", "/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
+            .antMatchers(HttpMethod.GET, "/api/admin/employees").permitAll()
             .antMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated()
             .and()

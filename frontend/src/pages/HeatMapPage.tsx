@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const LEVELS = ['', 'Novice', 'Aware', 'Practitioner', 'Proficient', 'Expert'];
 
@@ -433,7 +433,47 @@ const STACKS = [
   },
 ];
 
-const ALL_SKILLS = STACKS.flatMap((s) => s.skills);
+const STACKS_WITH_OTHERS = STACKS.map((stack) => ({
+  ...stack,
+  skills: [
+    ...stack.skills,
+    {
+      id: `${stack.id}_others`,
+      name: 'Others',
+      covers: '',
+    },
+  ],
+}));
+
+const TECHNICAL_STACK_IDS = [
+  'programming',
+  'mobile',
+  'frontend',
+  'backend',
+  'database',
+  'api',
+  'architecture',
+  'testing',
+  'devopsstack',
+  'agilescrum',
+  'cloudinfra',
+  'cybersecuritystack',
+  'dataengml',
+  'industryplatforms',
+  'aigenaiaagentic',
+];
+
+const BEHAVIOURAL_STACK_IDS = ['voiceaccent', 'corebehavioural'];
+
+const TECHNICAL_STACKS = STACKS_WITH_OTHERS.filter((stack) =>
+  TECHNICAL_STACK_IDS.includes(stack.id)
+);
+
+const BEHAVIOURAL_STACKS = STACKS_WITH_OTHERS.filter((stack) =>
+  BEHAVIOURAL_STACK_IDS.includes(stack.id)
+);
+
+const ALL_SKILLS = STACKS_WITH_OTHERS.flatMap((s) => s.skills);
 const TOTAL = ALL_SKILLS.length;
 
 function scColor(v: number): string {
@@ -449,6 +489,11 @@ function scColor(v: number): string {
 
 function HeatMapPage() {
   const [mode, setMode] = useState('educator'); // 'educator' or 'manager'
+  const [activeSection, setActiveSection] = useState<'technical' | 'behaviourial'>('technical');
+  const [sectionCardIndex, setSectionCardIndex] = useState({
+    technical: 0,
+    behaviourial: 0,
+  });
   const [profile, setProfile] = useState({
     name: '',
     grade: '',
@@ -515,15 +560,13 @@ function HeatMapPage() {
 
   const rated = ALL_SKILLS.filter((s) => ratings[s.id] !== undefined).length;
   const pct = Math.round((rated / TOTAL) * 100);
-  const vals = ALL_SKILLS.map((s) => ratings[s.id]).filter((v) => v !== undefined && v > 0);
-  const avg = vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—';
   const stackTotal = (stackId: string) =>
-    STACKS.find((stack) => stack.id === stackId)?.skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0) || 0;
+    STACKS_WITH_OTHERS.find((stack) => stack.id === stackId)?.skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0) || 0;
 
   const countSkillsInStacks = (stackIds: string[]): number => {
     let count = 0;
     stackIds.forEach((id) => {
-      const stack = STACKS.find((s) => s.id === id);
+      const stack = STACKS_WITH_OTHERS.find((s) => s.id === id);
       if (stack) count += stack.skills.length;
     });
     return count;
@@ -542,6 +585,37 @@ function HeatMapPage() {
     (a, b) => (ratings[a.id] || 0) - (ratings[b.id] || 0)
   );
   const strong = ALL_SKILLS.filter((s) => (ratings[s.id] || 0) >= 4);
+  const overallScore = ALL_SKILLS.reduce((sum, skill) => sum + (ratings[skill.id] || 0), 0);
+  const overallMaxScore = TOTAL * 5;
+  const activeStacks = activeSection === 'technical' ? TECHNICAL_STACKS : BEHAVIOURAL_STACKS;
+  const activeCardIndex = Math.min(sectionCardIndex[activeSection], Math.max(activeStacks.length - 1, 0));
+  const activeStack = activeStacks[activeCardIndex];
+
+  const goToNextStack = () => {
+    if (!activeStacks.length) {
+      return;
+    }
+
+    if (activeCardIndex < activeStacks.length - 1) {
+      setSectionCardIndex((prev) => ({
+        ...prev,
+        [activeSection]: activeCardIndex + 1,
+      }));
+    }
+  };
+
+  const goToPrevStack = () => {
+    if (!activeStacks.length) {
+      return;
+    }
+
+    if (activeCardIndex > 0) {
+      setSectionCardIndex((prev) => ({
+        ...prev,
+        [activeSection]: activeCardIndex - 1,
+      }));
+    }
+  };
 
   return (
     <>
@@ -574,8 +648,8 @@ function HeatMapPage() {
       {mode === 'educator' && (
         <div className="page active">
           <div className="layout">
-            <div className="ph-eyebrow">SELF EVALUATION</div>
-            <div className="ph-title">Rate your skills, Educator</div>
+            <div className="ph-eyebrow">RATE YOUR SKILLS</div>
+            <div className="ph-title">Full Stack Educator</div>
             <div className="ph-desc">
               Rate yourself across all  stacks. Your submission is saved live and visible to your Program Manager instantly.
             </div>
@@ -599,16 +673,13 @@ function HeatMapPage() {
                         />
                       </div>
                       <div className="field">
-                        <label>Grade</label>
-                        <select name="grade" value={profile.grade} onChange={handleProfileChange}>
-                          <option value="">Select grade</option>
-                          <option value="Associate">Associate</option>
-                          <option value="Senior Associate">Senior Associate</option>
-                          <option value="Manager">Manager</option>
-                          <option value="Senior Manager">Senior Manager</option>
-                          <option value="Associate Director">Associate Director</option>
-                          <option value="Director">Director</option>
-                        </select>
+                        <label>Employee ID</label>
+                        <input
+                          name="empid"
+                          value={profile.empid}
+                          onChange={handleProfileChange}
+                          placeholder="EMP ID"
+                        />
                       </div>
                     </div>
                     <div className="field-row2">
@@ -622,13 +693,16 @@ function HeatMapPage() {
                         />
                       </div>
                       <div className="field">
-                        <label>Employee ID</label>
-                        <input
-                          name="empid"
-                          value={profile.empid}
-                          onChange={handleProfileChange}
-                          placeholder="EMP ID"
-                        />
+                        <label>Grade</label>
+                        <select name="grade" value={profile.grade} onChange={handleProfileChange}>
+                          <option value="">Select grade</option>
+                          <option value="Associate">Associate</option>
+                          <option value="Senior Associate">Senior Associate</option>
+                          <option value="Manager">Manager</option>
+                          <option value="Senior Manager">Senior Manager</option>
+                          <option value="Associate Director">Associate Director</option>
+                          <option value="Director">Director</option>
+                        </select>
                       </div>
                     </div>
                     <button className="btn btn-primary btn-sm" onClick={saveProfile}>
@@ -657,31 +731,93 @@ function HeatMapPage() {
                       <div className="l">Rated</div>
                     </div>
                     <div className="pstat">
-                      <div className="v">{avg}</div>
+                      <div className="v">{overallScore}</div>
                       <div className="l">Total</div>
                     </div>
                     <div className="pstat">
                       <div className="v">{strong.length}</div>
-                      <div className="l">Strong</div>
+                      <div className="l">Practitioner</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Skills Form */}
                 <div id="skills-form">
-                  {STACKS.map((stack) => (
-                    <div key={stack.id} className="card" style={{ marginBottom: '1rem' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                      gap: '0.75rem',
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div className="section-tabs">
+                        <button
+                          className={`section-tab ${activeSection === 'technical' ? 'active' : ''}`}
+                          onClick={() => setActiveSection('technical')}
+                        >
+                          TECHNICAL
+                        </button>
+                        <button
+                          className={`section-tab ${activeSection === 'behaviourial' ? 'active' : ''}`}
+                          onClick={() => setActiveSection('behaviourial')}
+                        >
+                          BEHAVIOURAL
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--gray-md)', fontWeight: '600' }}>
+                        {activeStacks.length ? `${activeCardIndex + 1} / ${activeStacks.length}` : '0 / 0'}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          className="btn btn-sec btn-sm"
+                          onClick={goToPrevStack}
+                          disabled={!activeStacks.length || activeCardIndex === 0}
+                          style={{
+                            opacity: !activeStacks.length || activeCardIndex === 0 ? 0.5 : 1,
+                            cursor: !activeStacks.length || activeCardIndex === 0 ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          Prev
+                        </button>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={goToNextStack}
+                          disabled={!activeStacks.length || activeCardIndex >= activeStacks.length - 1}
+                          style={{
+                            opacity:
+                              !activeStacks.length || activeCardIndex >= activeStacks.length - 1
+                                ? 0.5
+                                : 1,
+                            cursor:
+                              !activeStacks.length || activeCardIndex >= activeStacks.length - 1
+                                ? 'not-allowed'
+                                : 'pointer',
+                          }}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {activeStack ? (
+                    <div key={activeStack.id} className="card" style={{ marginBottom: '1rem' }}>
                       <div
                         className="card-head"
                         style={{
-                          background: stack.bg,
+                          background: activeStack.bg,
                           borderBottom: 'none',
                           color: 'white',
                           borderRadius: '10px 10px 0 0',
                         }}
                       >
                         <div className="card-title" style={{ color: 'white' }}>
-                          {stack.name}
+                          {activeStack.name}
                         </div>
                       </div>
                       <div className="card-body">
@@ -690,7 +826,7 @@ function HeatMapPage() {
                             <tr>
                               <th style={{ textAlign: 'left', minWidth: '120px' }}>Skill</th>
                               <th style={{ textAlign: 'left', minWidth: '200px' }}>Covers</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>N/A</th>
+                              <th style={{ textAlign: 'center', width: '30px' }}>0</th>
                               <th style={{ textAlign: 'center', width: '30px' }}>1</th>
                               <th style={{ textAlign: 'center', width: '30px' }}>2</th>
                               <th style={{ textAlign: 'center', width: '30px' }}>3</th>
@@ -701,7 +837,7 @@ function HeatMapPage() {
                           <thead style={{ background: 'var(--gray-ltest)', fontSize: '9px', color: 'var(--gray-md)', fontWeight: '600' }}>
                             <tr>
                               <th colSpan={2}></th>
-                              <th style={{ textAlign: 'center' }}>N/A</th>
+                              <th style={{ textAlign: 'center' }}>None</th>
                               <th style={{ textAlign: 'center' }}>Novice</th>
                               <th style={{ textAlign: 'center' }}>Aware</th>
                               <th style={{ textAlign: 'center' }}>Pract.</th>
@@ -710,32 +846,53 @@ function HeatMapPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {stack.skills.map((skill) => (
+                            {activeStack.skills.map((skill) => (
                               <tr key={skill.id}>
                                 <td className="sname">{skill.name}</td>
                                 <td style={{ fontSize: '11px', color: 'var(--gray-dk)' }}>
-                                  <select
-                                    value={primaryCovers[skill.id] || coverOptions(skill.covers)[0] || ''}
-                                    onChange={(e) =>
-                                      setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
-                                    }
-                                    style={{
-                                      width: '100%',
-                                      maxWidth: '240px',
-                                      padding: '6px 8px',
-                                      borderRadius: '6px',
-                                      border: '1px solid var(--gray-lt)',
-                                      background: 'white',
-                                      color: 'var(--gray-dk)',
-                                      fontSize: '11px',
-                                    }}
-                                  >
-                                    {coverOptions(skill.covers).map((cover) => (
-                                      <option key={cover} value={cover}>
-                                        {cover}
-                                      </option>
-                                    ))}
-                                  </select>
+                                  {skill.name === 'Others' ? (
+                                    <input
+                                      type="text"
+                                      value={primaryCovers[skill.id] || ''}
+                                      onChange={(e) =>
+                                        setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
+                                      }
+                                      placeholder="Enter cover"
+                                      style={{
+                                        width: '100%',
+                                        maxWidth: '240px',
+                                        padding: '6px 8px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--gray-lt)',
+                                        background: 'white',
+                                        color: 'var(--gray-dk)',
+                                        fontSize: '11px',
+                                      }}
+                                    />
+                                  ) : (
+                                    <select
+                                      value={primaryCovers[skill.id] || coverOptions(skill.covers)[0] || ''}
+                                      onChange={(e) =>
+                                        setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
+                                      }
+                                      style={{
+                                        width: '100%',
+                                        maxWidth: '240px',
+                                        padding: '6px 8px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--gray-lt)',
+                                        background: 'white',
+                                        color: 'var(--gray-dk)',
+                                        fontSize: '11px',
+                                      }}
+                                    >
+                                      {coverOptions(skill.covers).map((cover) => (
+                                        <option key={cover} value={cover}>
+                                          {cover}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  )}
                                 </td>
                                 <td style={{ textAlign: 'center' }}>
                                   <button
@@ -791,7 +948,7 @@ function HeatMapPage() {
                         </table>
                       </div>
                     </div>
-                  ))}
+                  ) : null}
                 </div>
 
                 {/* Action Buttons */}
@@ -836,6 +993,22 @@ function HeatMapPage() {
                   </div>
                   <div style={{ marginBottom: '1rem' }}>
                     <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--a3m)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>
+                      Overall
+                    </div>
+                    <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px', maxWidth: '240px' }}>
+                      <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
+                        Overall Score
+                      </div>
+                      <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
+                        {calculatePercentage(overallScore, overallMaxScore)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                        {overallScore}/{overallMaxScore}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--a3m)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>
                       Technical
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
@@ -843,66 +1016,66 @@ function HeatMapPage() {
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Digital Stack Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}/{calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum']), calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}/{calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Cloud & Infra Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['cloudinfra'])}/{calculateMaxScore(['cloudinfra'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['cloudinfra']), calculateMaxScore(['cloudinfra']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['cloudinfra'])}/{calculateMaxScore(['cloudinfra'])}
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Cybersec Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['cybersecuritystack'])}/{calculateMaxScore(['cybersecuritystack'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['cybersecuritystack']), calculateMaxScore(['cybersecuritystack']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['cybersecuritystack'])}/{calculateMaxScore(['cybersecuritystack'])}
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Data Engg, Analytics & ML Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['dataengml'])}/{calculateMaxScore(['dataengml'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['dataengml']), calculateMaxScore(['dataengml']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['dataengml'])}/{calculateMaxScore(['dataengml'])}
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Products & Platforms Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['industryplatforms'])}/{calculateMaxScore(['industryplatforms'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['industryplatforms']), calculateMaxScore(['industryplatforms']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['industryplatforms'])}/{calculateMaxScore(['industryplatforms'])}
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           AI Stack Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['aigenaiaagentic'])}/{calculateMaxScore(['aigenaiaagentic'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['aigenaiaagentic']), calculateMaxScore(['aigenaiaagentic']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['aigenaiaagentic'])}/{calculateMaxScore(['aigenaiaagentic'])}
                         </div>
                       </div>
                     </div>
@@ -916,22 +1089,22 @@ function HeatMapPage() {
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Core BH Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['corebehavioural'])}/{calculateMaxScore(['corebehavioural'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['corebehavioural']), calculateMaxScore(['corebehavioural']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['corebehavioural'])}/{calculateMaxScore(['corebehavioural'])}
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           V&A Score
                         </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white' }}>
-                          {calculateCategoryScore(['voiceaccent'])}/{calculateMaxScore(['voiceaccent'])}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)', marginTop: '4px' }}>
+                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
                           {calculatePercentage(calculateCategoryScore(['voiceaccent']), calculateMaxScore(['voiceaccent']))}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
+                          {calculateCategoryScore(['voiceaccent'])}/{calculateMaxScore(['voiceaccent'])}
                         </div>
                       </div>
                     </div>

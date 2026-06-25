@@ -16,11 +16,14 @@
     "@tanstack/react-query": "^5.8.0",
     "axios": "^1.6.0",
     "framer-motion": "^11.0.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.57.0",
     "react-router-dom": "^6.14.0",
-    "recharts": "^2.8.0"
+    "recharts": "^2.8.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

@@ -67,6 +67,9 @@ public class AssessmentController {
             detail.setAssessment(assessment);
             detail.setSkill(skill);
             detail.setRating(rating == null ? 0 : rating);
+            if (request.getCovers() != null) {
+                detail.setRemarks(request.getCovers().getOrDefault(skillId, ""));
+            }
             assessment.getDetails().add(detail);
         });
 

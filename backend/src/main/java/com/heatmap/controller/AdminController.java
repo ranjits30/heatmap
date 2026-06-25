@@ -50,10 +50,12 @@ public class AdminController {
         Assessment latestAssessment = assessments.isEmpty() ? null : assessments.get(0);
 
         Map<String, Integer> skillRatings = new LinkedHashMap<>();
+        Map<String, String> skillCovers = new LinkedHashMap<>();
         if (latestAssessment != null) {
             latestAssessment.getDetails().forEach(detail -> {
                 if (detail.getSkill() != null) {
                     skillRatings.put(detail.getSkill().getName(), detail.getRating());
+                    skillCovers.put(detail.getSkill().getName(), detail.getRemarks() == null ? "" : detail.getRemarks());
                 }
             });
             dto.setSubmittedAt(latestAssessment.getSubmittedAt());
@@ -79,6 +81,7 @@ public class AdminController {
         int gapSkills = (int) skillRatings.values().stream().filter(score -> score > 0 && score < 3).count();
 
         dto.setSkillRatings(skillRatings);
+        dto.setSkillCovers(skillCovers);
         dto.setTopSkills(topSkills);
         dto.setTotalScore(totalScore);
         dto.setMaxScore(maxScore);

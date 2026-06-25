@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useNavigate } from 'react-router-dom';
 import { clearAuthSession, getAuthRoles } from '../auth';
 
@@ -489,6 +492,7 @@ type ManagerEmployee = {
   location: string;
   grade?: string;
   skills: SkillRatings;
+  skillCovers?: { [key: string]: string };
   submittedAt?: string;
 };
 
@@ -667,6 +671,7 @@ type ManagerEmployeeApi = {
   location?: string;
   submittedAt?: string;
   skillRatings?: SkillRatings;
+  skillCovers?: { [key: string]: string };
 };
 
 const getEmployeeMetrics = (employee: ManagerEmployee) => {
@@ -760,6 +765,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
           location: employee.location || '',
           grade: employee.designation || '',
           skills: employee.skillRatings || {},
+          skillCovers: employee.skillCovers || {},
           submittedAt: employee.submittedAt,
         }));
 
@@ -792,6 +798,13 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     }
 
     try {
+      const resolvedCovers = Object.fromEntries(
+        ALL_SKILLS.filter((skill) => ratings[skill.id] !== undefined).map((skill) => [
+          skill.id,
+          primaryCovers[skill.id] || coverOptions(skill.covers)[0] || '',
+        ])
+      );
+
       const response = await fetch('/api/assessments/submit', {
         method: 'POST',
         headers: {
@@ -836,6 +849,13 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       return;
     }
     try {
+      const resolvedCovers = Object.fromEntries(
+        ALL_SKILLS.filter((skill) => ratings[skill.id] !== undefined).map((skill) => [
+          skill.id,
+          primaryCovers[skill.id] || coverOptions(skill.covers)[0] || '',
+        ])
+      );
+
       const response = await fetch('/api/assessments/submit', {
         method: 'POST',
         headers: {
@@ -848,6 +868,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
           department: profile.bu,
           location: '',
           ratings,
+          covers: resolvedCovers,
         }),
       });
 
@@ -909,6 +930,244 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
   const strong = ALL_SKILLS.filter((s) => (ratings[s.id] || 0) >= 4);
   const overallScore = ALL_SKILLS.reduce((sum, skill) => sum + (ratings[skill.id] || 0), 0);
   const overallMaxScore = TOTAL * 5;
+
+  const reportFullName = profile.name.trim() || 'User';
+  const reportDisplayName = reportFullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  const reportTitle = `${reportDisplayName.split(/\s+/)[0]}'s Score Report`;
+  const reportFileStem = `${reportFullName.toLowerCase().replace(/[^a-z0-9]+/g, '_') || 'user'}_score_report`;
+
+  const buildSkillRows = () =>
+    ALL_SKILLS.filter((skill) => Object.prototype.hasOwnProperty.call(ratings, skill.id)).map((skill) => ({
+      Category: STACKS.find((stack) => stack.skills.some((item) => item.id === skill.id))?.name || 'Other',
+      Skill: skill.name,
+      Score: ratings[skill.id] ?? 0,
+      Level: LEVELS[ratings[skill.id] ?? 0] || '',
+      Covers: primaryCovers[skill.id] || coverOptions(skill.covers)[0] || '',
+    }));
+
+  const downloadExcelReport = () => {
+    const summarySheet = XLSX.utils.json_to_sheet([
+      {
+        Name: reportFullName,
+        EmployeeID: profile.empid,
+        Grade: profile.grade,
+        BusinessUnit: profile.bu,
+        TotalScore: overallScore,
+        MaxScore: overallMaxScore,
+        Percentage: `${calculatePercentage(overallScore, overallMaxScore)}`,
+        RatedSkills: rated,
+        PractitionerSkills: strong.length,
+      },
+    ]);
+
+    const skillsSheet = XLSX.utils.json_to_sheet(buildSkillRows());
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+    XLSX.utils.book_append_sheet(workbook, skillsSheet, 'Skill Ratings');
+    XLSX.writeFile(workbook, `${reportFileStem}.xlsx`);
+  };
+
+  const downloadPdfReport = () => {
+    const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 40;
+    let cursorY = 48;
+    const skillRows = buildSkillRows();
+    const summaryRows = [
+      ['Name', reportDisplayName],
+      ['Employee ID', profile.empid || '-'],
+      ['Grade', profile.grade || '-'],
+      ['Business Unit', profile.bu || '-'],
+      ['Overall Score', `${calculatePercentage(overallScore, overallMaxScore)} (${overallScore}/${overallMaxScore})`],
+      ['Rated Skills', String(rated)],
+      ['Practitioner Skills', String(strong.length)],
+    ];
+
+    pdf.setFillColor(0, 0, 72);
+    pdf.rect(0, 0, pageWidth, 86, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(reportTitle, margin, 34);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Full Stack Educator Platform', margin, 54);
+
+    autoTable(pdf, {
+      startY: 112,
+      margin: { left: margin, right: margin },
+      head: [['Summary Field', 'Value']],
+      body: summaryRows,
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 6,
+        textColor: [0, 0, 72],
+        lineColor: [208, 208, 206],
+        lineWidth: 0.6,
+      },
+      headStyles: {
+        fillColor: [0, 0, 72],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [247, 247, 245],
+      },
+      columnStyles: {
+        0: { cellWidth: 140, fontStyle: 'bold' },
+        1: { cellWidth: 'auto' },
+      },
+    });
+
+    cursorY = ((pdf as any).lastAutoTable?.finalY || 112) + 18;
+    const orderedCategories = STACKS.map((stack) => stack.name);
+    const groupedRows = orderedCategories
+      .map((category) => ({
+        category,
+        rows: skillRows.filter((row) => row.Category === category),
+      }))
+      .filter((entry) => entry.rows.length > 0);
+
+    groupedRows.forEach((entry, index) => {
+      const baseColor: [number, number, number] = index % 2 === 0 ? [47, 120, 196] : [115, 115, 216];
+      if (cursorY > 720) {
+        pdf.addPage();
+        cursorY = 48;
+      }
+
+      pdf.setFillColor(baseColor[0], baseColor[1], baseColor[2]);
+      pdf.roundedRect(margin, cursorY - 8, pageWidth - margin * 2, 24, 6, 6, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text(`${entry.category} - ${entry.rows.length} skill${entry.rows.length === 1 ? '' : 's'}`, margin + 12, cursorY + 8);
+
+      autoTable(pdf, {
+        startY: cursorY + 18,
+        margin: { left: margin, right: margin },
+        head: [['Skill', 'Score', 'Level', 'Cover']],
+        body: entry.rows.map((row) => [row.Skill, String(row.Score), row.Level || '-', row.Covers || '-']),
+        theme: 'striped',
+        styles: {
+          font: 'helvetica',
+          fontSize: 9.5,
+          cellPadding: 6,
+          textColor: [0, 0, 72],
+          lineColor: [232, 232, 230],
+          lineWidth: 0.5,
+        },
+        headStyles: {
+          fillColor: baseColor,
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [247, 249, 255],
+        },
+        columnStyles: {
+          0: { cellWidth: 150 },
+          1: { cellWidth: 52, halign: 'center' },
+          2: { cellWidth: 92 },
+          3: { cellWidth: 'auto' },
+        },
+        didDrawPage: (data) => {
+          cursorY = data.cursor?.y || cursorY;
+        },
+      });
+
+      cursorY = ((pdf as any).lastAutoTable?.finalY || cursorY) + 20;
+    });
+
+    pdf.save(`${reportFileStem}.pdf`);
+  };
+
+  const sanitizeSheetName = (name: string, fallback: string) => {
+    const cleaned = name.replace(/[\\/?*\[\]:]/g, ' ').trim();
+    const shortened = cleaned.slice(0, 31);
+    return shortened || fallback;
+  };
+
+  const buildManagerEmployeeRows = (employee: ManagerEmployee) =>
+    ALL_SKILLS.filter((skill) => Object.prototype.hasOwnProperty.call(employee.skills, skill.id)).map((skill) => ({
+      Category: STACKS.find((stack) => stack.skills.some((item) => item.id === skill.id))?.name || 'Other',
+      Skill: skill.name,
+      Score: employee.skills[skill.id] ?? 0,
+      Level: LEVELS[employee.skills[skill.id] ?? 0] || '',
+      Cover: employee.skillCovers?.[skill.id] || coverOptions(skill.covers)[0] || '',
+    }));
+
+  const downloadManagerReports = () => {
+    const workbook = XLSX.utils.book_new();
+
+    const overviewRows = managerVisibleEmployees.map((employee, index) => {
+      const metrics = getEmployeeMetrics(employee);
+      const submittedOn = employee.submittedAt
+        ? new Date(employee.submittedAt).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })
+        : '-';
+
+      return {
+        Rank: index + 1,
+        Name: employee.name,
+        EmployeeID: employee.employeeId,
+        Designation: employee.designation || '-',
+        Department: employee.department || '-',
+        Location: employee.location || '-',
+        Score: `${metrics.percentage}%`,
+        Marks: metrics.totalScore,
+        Skills: metrics.ratedSkills,
+        Practitioner: metrics.strongSkills,
+        Submitted: submittedOn,
+      };
+    });
+
+    const overviewSheet = XLSX.utils.json_to_sheet(overviewRows);
+    XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Manager Overview');
+
+    managerVisibleEmployees.forEach((employee, index) => {
+      const metrics = getEmployeeMetrics(employee);
+      const submittedOn = employee.submittedAt
+        ? new Date(employee.submittedAt).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })
+        : '-';
+
+      const sheet = XLSX.utils.aoa_to_sheet([
+        ['Employee Report'],
+        [],
+        ['Name', employee.name],
+        ['Employee ID', employee.employeeId],
+        ['Designation', employee.designation || '-'],
+        ['Department', employee.department || '-'],
+        ['Location', employee.location || '-'],
+        ['Score', `${metrics.percentage}%`],
+        ['Marks', metrics.totalScore],
+        ['Skills', metrics.ratedSkills],
+        ['Practitioner', metrics.strongSkills],
+        ['Submitted', submittedOn],
+        [],
+        ['Skill Ratings'],
+        ['Category', 'Skill', 'Score', 'Level', 'Cover'],
+        ...buildManagerEmployeeRows(employee).map((row) => [row.Category, row.Skill, row.Score, row.Level, row.Cover]),
+      ]);
+
+      const sheetName = sanitizeSheetName(`${index + 1}_${employee.name}`, `Employee_${index + 1}`);
+      XLSX.utils.book_append_sheet(workbook, sheet, sheetName);
+    });
+
+    XLSX.writeFile(workbook, `${reportFileStem}_manager_reports.xlsx`);
+  };
   const activeStacks = activeSection === 'technical' ? TECHNICAL_STACKS : BEHAVIOURAL_STACKS;
   const activeCardIndex = Math.min(sectionCardIndex[activeSection], Math.max(activeStacks.length - 1, 0));
   const activeStack = activeStacks[activeCardIndex];
@@ -965,6 +1224,14 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     return matchesSearch && matchesCategory && matchesRating;
   });
 
+  const managerVisibleEmployees = [...managerFilteredEmployees]
+    .sort((a, b) => {
+      const metricsA = getEmployeeMetrics(a);
+      const metricsB = getEmployeeMetrics(b);
+      return metricsB.totalScore - metricsA.totalScore || metricsB.percentage - metricsA.percentage;
+    })
+    .slice(0, 5);
+
   const managerCategoryOptions = STACKS_WITH_OTHERS.map((stack) => ({ id: stack.id, name: stack.name }));
   const managerSkillOptions = ALL_SKILLS.map((skill) => ({ id: skill.id, name: skill.name }));
 
@@ -977,7 +1244,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     <>
       <div className="topbar">
         <div className="brand">
-          <div className="brand-mark">C</div>
+          <div className="brand-mark">HM</div>
           <div>
             <div className="brand-text">FSE Skill Heatmap</div>
             <div className="brand-sub">Full Stack Educator Platform</div>
@@ -1344,6 +1611,18 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                 >
                   <div
                     style={{
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: 'white',
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    {(profile.name || 'User').split(' ')[0]}'s Score Report
+                  </div>
+                  <div
+                    style={{
                       fontSize: '14px',
                       fontWeight: '700',
                       marginBottom: '1rem',
@@ -1477,6 +1756,12 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                   <button className="btn btn-primary" onClick={() => setShowResults(false)}>
                     Edit Ratings
                   </button>
+                  <button className="btn btn-primary" onClick={downloadExcelReport}>
+                    Download Excel
+                  </button>
+                  <button className="btn btn-primary" onClick={downloadPdfReport}>
+                    Download PDF
+                  </button>
                 </div>
               </>
             )}
@@ -1490,6 +1775,21 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
             <div className="ph-eyebrow">Dashboard</div>
             <div className="ph-title">Manager Dashboard</div>
             <div className="ph-desc">Team skill assessment overview with employee search and rating filters.</div>
+
+            <div className="prog-strip" style={{ marginTop: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>Employees</div>
+                <div className="prog-pct" style={{ minWidth: 'auto' }}>{managerVisibleEmployees.length}</div>
+              </div>
+              <div className="pstat">
+                <div className="v">{managerVisibleEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) ? Math.round(managerVisibleEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) / managerVisibleEmployees.length) : 0}%</div>
+                <div className="l">Avg score</div>
+              </div>
+              <div className="pstat">
+                <div className="v">{managerVisibleEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).strongSkills, 0)}</div>
+                <div className="l">Practitioner skills</div>
+              </div>
+            </div>
 
             <div className="card" style={{ marginTop: '1.5rem' }}>
               <div className="card-body">
@@ -1541,93 +1841,89 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
               </div>
             </div>
 
-            <div className="prog-strip" style={{ marginTop: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>Employees</div>
-                <div className="prog-pct" style={{ minWidth: 'auto' }}>{managerFilteredEmployees.length}</div>
-              </div>
-              <div className="pstat">
-                <div className="v">{managerFilteredEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) ? Math.round(managerFilteredEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) / managerFilteredEmployees.length) : 0}%</div>
-                <div className="l">Avg score</div>
-              </div>
-              <div className="pstat">
-                <div className="v">{managerFilteredEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).strongSkills, 0)}</div>
-                <div className="l">Practitioner skills</div>
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <div className="card-body" style={{ padding: 0 }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="manager-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Designation</th>
+                        <th>Department</th>
+                        <th>Location</th>
+                        <th style={{ textAlign: 'center' }}>Score</th>
+                        <th style={{ textAlign: 'center' }}>Marks</th>
+                        <th style={{ textAlign: 'center' }}>Skills</th>
+                        <th style={{ textAlign: 'center' }}>Practitioner</th>
+                        <th>Top Skills</th>
+                        <th>Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {managerVisibleEmployees.map((employee) => {
+                        const metrics = getEmployeeMetrics(employee);
+                        const submittedOn = employee.submittedAt
+                          ? new Date(employee.submittedAt).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : '-';
+
+                        return (
+                          <tr key={employee.id}>
+                            <td>
+                              <div style={{ display: 'grid', gap: '4px' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{employee.name}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--gray-md)', fontWeight: 600 }}>
+                                  Employee ID: {employee.employeeId}
+                                </div>
+                              </div>
+                            </td>
+                            <td>{employee.designation || '-'}</td>
+                            <td>{employee.department || '-'}</td>
+                            <td>{employee.location || '-'}</td>
+                            <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--primary)' }}>{metrics.percentage}%</td>
+                            <td style={{ textAlign: 'center' }}>{metrics.totalScore}</td>
+                            <td style={{ textAlign: 'center' }}>{metrics.ratedSkills}</td>
+                            <td style={{ textAlign: 'center' }}>{metrics.strongSkills}</td>
+                            <td>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {metrics.topSkills
+                                  .filter((skill) => {
+                                    const normalizedSkillId = skill.skillId.trim().toLowerCase();
+                                    return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
+                                  })
+                                  .map((skill) => (
+                                    <span
+                                      key={skill.skillId}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        padding: '5px 8px',
+                                        borderRadius: '999px',
+                                        background: 'var(--gray-ltest)',
+                                        fontSize: '11px',
+                                        color: 'var(--primary)',
+                                      }}
+                                    >
+                                      {SKILL_NAME_BY_ID[skill.skillId] || skill.skillId}: {skill.score}
+                                    </span>
+                                  ))}
+                              </div>
+                            </td>
+                            <td>{submittedOn}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-              {managerFilteredEmployees.map((employee) => {
-                const metrics = getEmployeeMetrics(employee);
-
-                return (
-                  <div key={employee.id} className="card">
-                    <div className="card-head">
-                      <div className="card-title">{employee.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--gray-md)', fontWeight: '600' }}>{employee.employeeId}</div>
-                    </div>
-                    <div className="card-body">
-                      <div style={{ display: 'grid', gap: '0.45rem', marginBottom: '0.9rem' }}>
-                        <div style={{ fontSize: '12px', color: 'var(--gray-dk)' }}>{employee.designation}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--gray-md)' }}>
-                          {employee.department} • {employee.location}
-                        </div>
-                        {employee.grade && employee.grade !== employee.designation && (
-                          <div style={{ fontSize: '11px', color: 'var(--gray-md)' }}>{employee.grade}</div>
-                        )}
-                      </div>
-                      <div className="prog-strip" style={{ marginBottom: '0.9rem' }}>
-                        <div>
-                          <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>Score</div>
-                          <div className="prog-pct" style={{ minWidth: 'auto' }}>{metrics.percentage}%</div>
-                        </div>
-                        <div className="pstat">
-                          <div className="v">{metrics.totalScore}</div>
-                          <div className="l">Marks</div>
-                        </div>
-                        <div className="pstat">
-                          <div className="v">{metrics.ratedSkills}</div>
-                          <div className="l">Skills</div>
-                        </div>
-                        <div className="pstat">
-                          <div className="v">{metrics.strongSkills}</div>
-                          <div className="l">Practitioner</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--gray-md)', marginBottom: '0.5rem', textTransform: 'uppercase', fontWeight: '700' }}>
-                        Top skills
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {metrics.topSkills
-                          .filter((skill) => {
-                            const normalizedSkillId = skill.skillId.trim().toLowerCase();
-                            return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
-                          })
-                          .map((skill) => (
-                          <span
-                            key={skill.skillId}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '5px 8px',
-                              borderRadius: '999px',
-                              background: 'var(--gray-ltest)',
-                              fontSize: '11px',
-                              color: 'var(--primary)',
-                            }}
-                          >
-                            {SKILL_NAME_BY_ID[skill.skillId] || skill.skillId}: {skill.score}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {!managerFilteredEmployees.length && (
+            {!managerVisibleEmployees.length && (
               <div className="card" style={{ marginTop: '1rem' }}>
                 <div className="card-body">
                   <p style={{ color: 'var(--gray-md)', textAlign: 'center', padding: '2rem' }}>
@@ -1636,6 +1932,12 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                 </div>
               </div>
             )}
+
+            <div className="btn-row" style={{ marginTop: '1.25rem' }}>
+              <button className="btn btn-primary" onClick={downloadManagerReports}>
+                Download All Employee Reports (Excel)
+              </button>
+            </div>
           </div>
         </div>
       )}

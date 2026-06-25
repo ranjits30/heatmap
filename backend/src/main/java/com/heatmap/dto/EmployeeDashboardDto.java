@@ -13,6 +13,7 @@ public class EmployeeDashboardDto {
     private String location;
     private LocalDateTime submittedAt;
     private Map<String, Integer> skillRatings;
+    private Map<String, String> skillCovers;
     private List<EmployeeSkillRatingDto> topSkills;
     private int totalScore;
     private int maxScore;
@@ -86,6 +87,14 @@ public class EmployeeDashboardDto {
 
     public void setSkillRatings(Map<String, Integer> skillRatings) {
         this.skillRatings = skillRatings;
+    }
+
+    public Map<String, String> getSkillCovers() {
+        return skillCovers;
+    }
+
+    public void setSkillCovers(Map<String, String> skillCovers) {
+        this.skillCovers = skillCovers;
     }
 
     public List<EmployeeSkillRatingDto> getTopSkills() {

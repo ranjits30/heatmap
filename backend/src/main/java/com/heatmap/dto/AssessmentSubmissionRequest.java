@@ -9,6 +9,7 @@ public class AssessmentSubmissionRequest {
     private String department;
     private String location;
     private Map<String, Integer> ratings;
+    private Map<String, String> covers;
 
     public String getEmployeeId() {
         return employeeId;
@@ -56,5 +57,13 @@ public class AssessmentSubmissionRequest {
 
     public void setRatings(Map<String, Integer> ratings) {
         this.ratings = ratings;
+    }
+
+    public Map<String, String> getCovers() {
+        return covers;
+    }
+
+    public void setCovers(Map<String, String> covers) {
+        this.covers = covers;
     }
 }

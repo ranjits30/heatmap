@@ -2,10 +2,22 @@ import { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { clearAuthSession, getAuthRoles } from '../auth';
 
-const LEVELS = ['', 'Novice', 'Aware', 'Practitioner', 'Proficient', 'Expert'];
+const MAX_RATING = 4;
+const LEVELS = ['No knowledge', 'Aware', 'Practitioner', 'Advanced', 'Expert'];
 
 const STACKS = [
   {
@@ -62,185 +74,6 @@ const STACKS = [
       { id: 'auth', name: 'Authentication', covers: 'OAuth, JWT' },
       { id: 'msgqueue', name: 'Message Queues', covers: 'Kafka, RabbitMQ' },
       { id: 'caching', name: 'Caching', covers: 'Redis' },
-    ],
-  },
-  {
-    id: 'database',
-    name: 'Database',
-    color: '#2E308E',
-    bg: 'linear-gradient(90deg,#2E308E,#06C7CC)',
-    skills: [
-      {
-        id: 'relationalsql',
-        name: 'Relational SQL',
-        covers: 'MySQL, PostgreSQL, Oracle, SQL Server',
-      },
-      {
-        id: 'nosql',
-        name: 'NoSQL',
-        covers: 'MongoDB, Cassandra, DynamoDB, Redis',
-      },
-    ],
-  },
-  {
-    id: 'api',
-    name: 'API',
-    color: '#2F78C4',
-    bg: 'linear-gradient(90deg,#2F78C4,#06C7CC)',
-    skills: [
-      { id: 'restapis', name: 'REST APIs', covers: 'Resource-based HTTP APIs' },
-      { id: 'graphql', name: 'GraphQL', covers: 'Schema-based query APIs' },
-      { id: 'grpc', name: 'gRPC', covers: 'High-performance RPC APIs' },
-    ],
-  },
-  {
-    id: 'architecture',
-    name: 'Architecture',
-    color: '#7373D8',
-    bg: 'linear-gradient(90deg,#7373D8,#2F78C4)',
-    skills: [
-      { id: 'microservices', name: 'Microservices', covers: 'Distributed service-based systems' },
-      {
-        id: 'serverless',
-        name: 'Serverless',
-        covers: 'AWS Lambda, Azure Functions, Google Cloud Functions',
-      },
-    ],
-  },
-  {
-    id: 'testing',
-    name: 'Testing',
-    color: '#2E308E',
-    bg: 'linear-gradient(90deg,#2E308E,#7373D8)',
-    skills: [
-      { id: 'unittesting', name: 'Unit Testing', covers: 'JUnit, NUnit, PyTest' },
-      { id: 'uiautomation', name: 'UI Automation', covers: 'Selenium, Cypress, Playwright' },
-      {
-        id: 'apitesting',
-        name: 'API Testing',
-        covers: 'Postman (manual+automation), Rest Assured (Java), SoapUI',
-      },
-      { id: 'performance', name: 'Performance', covers: 'JMeter, LoadRunner, Gatling' },
-      { id: 'securitytesting', name: 'Security', covers: 'OWASP ZAP, Burp Suite' },
-      { id: 'specialized', name: 'Specialized', covers: 'Appium, Axe, BrowserStack' },
-    ],
-  },
-  {
-    id: 'devopsstack',
-    name: 'DevOps',
-    color: '#2F78C4',
-    bg: 'linear-gradient(90deg,#2F78C4,#2E308E)',
-    skills: [
-      { id: 'coderepo', name: 'Code Repo', covers: 'Git, GitHub' },
-      {
-        id: 'cicd',
-        name: 'CI/CD',
-        covers: 'Jenkins, GitHub Actions, Azure DevOps',
-      },
-      { id: 'buildtools', name: 'Build', covers: 'Maven, npm' },
-      {
-        id: 'deploycontainer',
-        name: 'Deploy / Containerization',
-        covers: 'Docker, Kubernetes',
-      },
-      {
-        id: 'monitoringconfig',
-        name: 'Monitoring, Config Mgmt',
-        covers: 'Splunk, Prometheus, Grafana, Ansible, Puppet',
-      },
-    ],
-  },
-  {
-    id: 'agilescrum',
-    name: 'Agile / Scrum',
-    color: '#7373D8',
-    bg: 'linear-gradient(90deg,#7373D8,#06C7CC)',
-    skills: [
-      { id: 'coreagile', name: 'Core Agile', covers: 'Scrum, Kanban, XP, Lean' },
-      { id: 'scaledagile', name: 'Scaled Agile', covers: 'SAFe, LeSS, Nexus, DA' },
-      { id: 'hybridagile', name: 'Hybrid', covers: 'Scrumban, Crystal, FDD' },
-    ],
-  },
-  {
-    id: 'cloudinfra',
-    name: 'Cloud & Infra',
-    color: '#06C7CC',
-    bg: 'linear-gradient(90deg,#06C7CC,#2E308E)',
-    skills: [
-      { id: 'cloudplatform', name: 'Cloud platform', covers: 'AWS' },
-      { id: 'multicloud', name: 'Multicloud', covers: 'Azure, GCP' },
-      { id: 'virtualization', name: 'Virtualization', covers: 'VMware, SDDC' },
-      {
-        id: 'iac',
-        name: 'IaC',
-        covers: 'Terraform, CloudFormation, vRealize',
-      },
-      { id: 'networking', name: 'Networking', covers: 'VPC, Load Balancer, VPN' },
-      { id: 'aiops', name: 'AI Ops', covers: 'Copilot (Infra)' },
-    ],
-  },
-  {
-    id: 'cybersecuritystack',
-    name: 'Cybersecurity',
-    color: '#2E308E',
-    bg: 'linear-gradient(90deg,#2E308E,#7373D8)',
-    skills: [
-      {
-        id: 'cyber_os',
-        name: 'Operating Systems',
-        covers: 'Linux, Windows Security',
-      },
-      {
-        id: 'cyber_networking',
-        name: 'Networking',
-        covers:
-          'TCP/IP, DNS, HTTP/HTTPS, Firewalls, VPNs, proxies, Wireshark, Snort, Palo Alto / Cisco firewalls',
-      },
-      {
-        id: 'cyber_security_basics',
-        name: 'Security',
-        covers: 'CIA Triad, Encryption, hashing',
-      },
-      {
-        id: 'cyber_ethical_hacking',
-        name: 'Ethical Hacking',
-        covers: 'Metasploit, Nmap, Kali Linux',
-      },
-      {
-        id: 'cyber_iam',
-        name: 'Identity & Access Mgmt (IAM)',
-        covers: 'Authentication, authorization, access control',
-      },
-      {
-        id: 'cyber_cloud_security',
-        name: 'Cloud Security',
-        covers: 'AWS Security Hub, Azure Security Center',
-      },
-      {
-        id: 'cyber_soc',
-        name: 'Security Operations (SOC)',
-        covers: 'SIEM (Splunk, QRadar), SOAR platforms',
-      },
-      {
-        id: 'cyber_cryptography',
-        name: 'Cryptography',
-        covers: 'AES, RSA, SHA',
-      },
-      {
-        id: 'cyber_vuln_mgmt',
-        name: 'Vulnerability Mgmt',
-        covers: 'Nessus, Qualys',
-      },
-      {
-        id: 'cyber_devsecops',
-        name: 'DevSecOps',
-        covers: 'SonarQube, Snyk, Checkmarx',
-      },
-      {
-        id: 'cyber_grc',
-        name: 'Governance, Risk & Compliance (GRC)',
-        covers: 'ISO 27001, GDPR, NIST',
-      },
     ],
   },
   {
@@ -478,8 +311,13 @@ const BEHAVIOURAL_STACKS = STACKS_WITH_OTHERS.filter((stack) =>
   BEHAVIOURAL_STACK_IDS.includes(stack.id)
 );
 
-const ALL_SKILLS = STACKS_WITH_OTHERS.flatMap((s) => s.skills);
+const ALL_SKILLS = STACKS_WITH_OTHERS.flatMap((s) => s.skills).filter(
+  (skill) => !skill.id.toLowerCase().endsWith('_others') && skill.id.toLowerCase() !== 'others'
+);
 const TOTAL = ALL_SKILLS.length;
+const DIGITAL_STACK_GROUP_IDS = ['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'];
+const AI_STACK_GROUP_IDS = ['aigenaiaagentic'];
+const BH_STACK_GROUP_IDS = ['corebehavioural', 'voiceaccent'];
 
 type SkillRatings = { [key: string]: number };
 
@@ -676,11 +514,12 @@ type ManagerEmployeeApi = {
 
 const getEmployeeMetrics = (employee: ManagerEmployee) => {
   const ratedEntries = Object.entries(employee.skills).filter(([, score]) => score > 0);
-  const totalScore = ratedEntries.reduce((sum, [, score]) => sum + score, 0);
-  const maxScore = ratedEntries.length * 5;
+  const normalizedEntries = ratedEntries.map(([skillId, score]) => [skillId, Math.min(score, MAX_RATING)] as const);
+  const totalScore = normalizedEntries.reduce((sum, [, score]) => sum + score, 0);
+  const maxScore = normalizedEntries.length * MAX_RATING;
   const averageScore = ratedEntries.length ? totalScore / ratedEntries.length : 0;
   const percentage = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
-  const strongSkills = ratedEntries.filter(([, score]) => score >= 4).length;
+  const strongSkills = normalizedEntries.filter(([, score]) => score >= 2).length;
   const topSkills = ratedEntries
     .filter(([skillId]) => !skillId.toLowerCase().endsWith('_others') && skillId.toLowerCase() !== 'others')
     .sort((a, b) => b[1] - a[1])
@@ -698,6 +537,21 @@ const getEmployeeMetrics = (employee: ManagerEmployee) => {
   };
 };
 
+const getStackSkillIds = (stackIds: string[]) =>
+  stackIds.flatMap((stackId) => STACKS.find((stack) => stack.id === stackId)?.skills.map((skill) => skill.id) || []);
+
+const getEmployeeStackPercentage = (employee: ManagerEmployee, stackIds: string[]) => {
+  const stackSkillIds = getStackSkillIds(stackIds);
+  const ratedEntries = stackSkillIds
+    .map((skillId) => employee.skills[skillId])
+    .filter((score): score is number => score !== undefined && score > 0)
+    .map((score) => Math.min(score, MAX_RATING));
+  const totalScore = ratedEntries.reduce((sum, score) => sum + score, 0);
+  const maxScore = ratedEntries.length * MAX_RATING;
+
+  return maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
+};
+
 const SKILL_NAME_BY_ID = Object.fromEntries(ALL_SKILLS.map((skill) => [skill.id, skill.name]));
 
 function scColor(v: number): string {
@@ -707,7 +561,6 @@ function scColor(v: number): string {
     '#E9A01D',
     '#F5D020',
     '#52C87A',
-    '#06C7CC',
   ][v || 0];
 }
 
@@ -725,14 +578,25 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     name: '',
     grade: '',
     bu: '',
+    designation: '',
+    location: '',
     empid: '',
   });
   const [ratings, setRatings] = useState<{ [key: string]: number }>({});
   const [primaryCovers, setPrimaryCovers] = useState<{ [key: string]: string }>({});
+  const [coverRatings, setCoverRatings] = useState<{ [key: string]: { [key: string]: number } }>({});
   const [toastMsg, setToastMsg] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [managerEmployees, setManagerEmployees] = useState<ManagerEmployee[]>(MANAGER_EMPLOYEES);
   const [managerSearch, setManagerSearch] = useState('');
+  const [managerEmployeeId, setManagerEmployeeId] = useState('');
+  const [managerDesignation, setManagerDesignation] = useState('');
+  const [managerLocation, setManagerLocation] = useState('');
+  const [managerScore, setManagerScore] = useState('');
+  const [managerSkillCategory, setManagerSkillCategory] = useState('');
+  const [managerSkills, setManagerSkills] = useState('');
+  const [managerDigitalStackScore, setManagerDigitalStackScore] = useState('');
+  const [managerAiStackScore, setManagerAiStackScore] = useState('');
   const [managerCategory, setManagerCategory] = useState('');
   const [managerRatingSkill, setManagerRatingSkill] = useState('');
   const [managerRatingMin, setManagerRatingMin] = useState('4');
@@ -764,6 +628,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
           department: employee.department || '',
           location: employee.location || '',
           grade: employee.designation || '',
+          bu: employee.department || '',
           skills: employee.skillRatings || {},
           skillCovers: employee.skillCovers || {},
           submittedAt: employee.submittedAt,
@@ -792,17 +657,14 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
   };
 
   const saveProfile = async () => {
-    if (!profile.name || !profile.grade) {
-      showToast('Please enter your name and grade');
+    if (!profile.name || !profile.grade || !profile.designation || !profile.location) {
+      showToast('Please enter your name, grade, designation, and location');
       return;
     }
 
     try {
       const resolvedCovers = Object.fromEntries(
-        ALL_SKILLS.filter((skill) => ratings[skill.id] !== undefined).map((skill) => [
-          skill.id,
-          primaryCovers[skill.id] || coverOptions(skill.covers)[0] || '',
-        ])
+        ALL_SKILLS.filter((skill) => ratings[skill.id] !== undefined).map((skill) => [skill.id, buildCoverSummary(skill)])
       );
 
       const response = await fetch('/api/assessments/submit', {
@@ -813,10 +675,11 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
         body: JSON.stringify({
           employeeId: profile.empid,
           name: profile.name,
-          designation: profile.grade,
+          designation: profile.designation || profile.grade,
           department: profile.bu,
-          location: '',
+          location: profile.location,
           ratings: {},
+          covers: resolvedCovers,
         }),
       });
 
@@ -830,30 +693,14 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     }
   };
 
-  const setRating = (id: string, score: number) => {
-    if (!profile.name) {
-      showToast('Please save your profile first');
-      return;
-    }
-    setRatings((prev) => ({ ...prev, [id]: score }));
-  };
-
   const submitRatings = async () => {
-    if (!profile.name || !profile.grade) {
+    if (!profile.name || !profile.grade || !profile.designation || !profile.location) {
       showToast('Save your profile first');
-      return;
-    }
-    const rated = ALL_SKILLS.filter((s) => ratings[s.id] !== undefined).length;
-    if (rated < TOTAL) {
-      showToast(`Rate all ${TOTAL} skills first — ${TOTAL - rated} remaining`);
       return;
     }
     try {
       const resolvedCovers = Object.fromEntries(
-        ALL_SKILLS.filter((skill) => ratings[skill.id] !== undefined).map((skill) => [
-          skill.id,
-          primaryCovers[skill.id] || coverOptions(skill.covers)[0] || '',
-        ])
+        ALL_SKILLS.filter((skill) => ratings[skill.id] !== undefined).map((skill) => [skill.id, buildCoverSummary(skill)])
       );
 
       const response = await fetch('/api/assessments/submit', {
@@ -864,9 +711,9 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
         body: JSON.stringify({
           employeeId: profile.empid,
           name: profile.name,
-          designation: profile.grade,
+          designation: profile.designation || profile.grade,
           department: profile.bu,
-          location: '',
+          location: profile.location,
           ratings,
           covers: resolvedCovers,
         }),
@@ -883,9 +730,19 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     }
   };
 
+  const setRating = (id: string, score: number) => {
+    if (!profile.name) {
+      showToast('Please save your profile first');
+      return;
+    }
+
+    setRatings((prev) => ({ ...prev, [id]: score }));
+  };
+
   const resetRatings = () => {
     setRatings({});
     setPrimaryCovers({});
+    setCoverRatings({});
     setShowResults(false);
     showToast('Ratings cleared');
   };
@@ -896,6 +753,69 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       .map((item) => item.trim())
       .filter(Boolean);
 
+  const getSkillCoverNames = (skill: { id: string; name: string; covers?: string }) =>
+    skill.name === 'Others' ? [primaryCovers[skill.id] || 'Custom cover'] : coverOptions(skill.covers);
+
+  const getAggregateCoverRating = (skillId: string) => {
+    const values = Object.values(coverRatings[skillId] || {});
+    if (!values.length) {
+      return undefined;
+    }
+
+    return Math.round(values.reduce((sum, score) => sum + score, 0) / values.length);
+  };
+
+  const setCoverRating = (skillId: string, coverName: string, score: number) => {
+    setCoverRatings((prev) => {
+      const nextSkillRatings = {
+        ...(prev[skillId] || {}),
+        [coverName]: score,
+      };
+
+      setRatings((prevRatings) => ({
+        ...prevRatings,
+        [skillId]: getAggregateCoverRatingFromMap(nextSkillRatings),
+      }));
+
+      return {
+        ...prev,
+        [skillId]: nextSkillRatings,
+      };
+    });
+  };
+
+  const setSkillCoverRatings = (skillId: string, coverNames: string[], score: number) => {
+    const nextSkillRatings = Object.fromEntries(coverNames.map((coverName) => [coverName, score]));
+
+    setCoverRatings((prev) => ({
+      ...prev,
+      [skillId]: nextSkillRatings,
+    }));
+
+    setRatings((prevRatings) => ({
+      ...prevRatings,
+      [skillId]: score,
+    }));
+  };
+
+  const getAggregateCoverRatingFromMap = (skillRatings: { [key: string]: number }) => {
+    const values = Object.values(skillRatings);
+    if (!values.length) {
+      return 0;
+    }
+
+    return Math.round(values.reduce((sum, score) => sum + score, 0) / values.length);
+  };
+
+  const buildCoverSummary = (skill: { id: string; name: string; covers?: string }) => {
+    const coverNames = getSkillCoverNames(skill);
+    const skillRatings = coverRatings[skill.id] || {};
+
+    return coverNames
+      .map((coverName) => `${coverName}: ${skillRatings[coverName] ?? '-'}`)
+      .join(', ');
+  };
+
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
@@ -904,7 +824,10 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
   const rated = ALL_SKILLS.filter((s) => ratings[s.id] !== undefined).length;
   const pct = Math.round((rated / TOTAL) * 100);
   const stackTotal = (stackId: string) =>
-    STACKS_WITH_OTHERS.find((stack) => stack.id === stackId)?.skills.reduce((sum, s) => sum + (ratings[s.id] || 0), 0) || 0;
+    STACKS_WITH_OTHERS.find((stack) => stack.id === stackId)?.skills.reduce(
+      (maxScore, skill) => Math.max(maxScore, ratings[skill.id] || 0),
+      0
+    ) || 0;
 
   const countSkillsInStacks = (stackIds: string[]): number => {
     let count = 0;
@@ -915,21 +838,21 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     return count;
   };
 
-  const calculateMaxScore = (stackIds: string[]): number => countSkillsInStacks(stackIds) * 5;
+  const calculateMaxScore = (stackIds: string[]): number => (stackIds.length ? MAX_RATING : 0);
 
   const calculateCategoryScore = (stackIds: string[]): number =>
-    stackIds.reduce((sum, id) => sum + stackTotal(id), 0);
+    stackIds.reduce((maxScore, id) => Math.max(maxScore, stackTotal(id)), 0);
 
   const calculatePercentage = (score: number, maxScore: number): string => {
     return maxScore === 0 ? '0%' : `${Math.round((score / maxScore) * 100)}%`;
   };
 
-  const gaps = ALL_SKILLS.filter((s) => ratings[s.id] > 0 && ratings[s.id] < 3).sort(
-    (a, b) => (ratings[a.id] || 0) - (ratings[b.id] || 0)
+  const gaps = ALL_SKILLS.filter((s) => (ratings[s.id] || 0) > 0 && (ratings[s.id] || 0) < 3).sort(
+    (a, b) => Math.min(ratings[a.id] || 0, MAX_RATING) - Math.min(ratings[b.id] || 0, MAX_RATING)
   );
-  const strong = ALL_SKILLS.filter((s) => (ratings[s.id] || 0) >= 4);
-  const overallScore = ALL_SKILLS.reduce((sum, skill) => sum + (ratings[skill.id] || 0), 0);
-  const overallMaxScore = TOTAL * 5;
+  const strong = ALL_SKILLS.filter((s) => Math.min(ratings[s.id] || 0, MAX_RATING) >= 2);
+  const overallScore = ALL_SKILLS.reduce((sum, skill) => sum + Math.min(ratings[skill.id] || 0, MAX_RATING), 0);
+  const overallMaxScore = TOTAL * MAX_RATING;
 
   const reportFullName = profile.name.trim() || 'User';
   const reportDisplayName = reportFullName
@@ -944,9 +867,14 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     ALL_SKILLS.filter((skill) => Object.prototype.hasOwnProperty.call(ratings, skill.id)).map((skill) => ({
       Category: STACKS.find((stack) => stack.skills.some((item) => item.id === skill.id))?.name || 'Other',
       Skill: skill.name,
-      Score: ratings[skill.id] ?? 0,
-      Level: LEVELS[ratings[skill.id] ?? 0] || '',
-      Covers: primaryCovers[skill.id] || coverOptions(skill.covers)[0] || '',
+      Score: Math.min(
+        Math.max(ratings[skill.id] ?? 0, ...Object.values(coverRatings[skill.id] || {})),
+        MAX_RATING
+      ),
+      Level: LEVELS[
+        Math.min(Math.max(ratings[skill.id] ?? 0, ...Object.values(coverRatings[skill.id] || {})), MAX_RATING)
+      ] || '',
+      Covers: buildCoverSummary(skill),
     }));
 
   const downloadExcelReport = () => {
@@ -956,6 +884,8 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
         EmployeeID: profile.empid,
         Grade: profile.grade,
         BusinessUnit: profile.bu,
+        Designation: profile.designation || profile.grade,
+        Location: profile.location,
         TotalScore: overallScore,
         MaxScore: overallMaxScore,
         Percentage: `${calculatePercentage(overallScore, overallMaxScore)}`,
@@ -982,6 +912,8 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       ['Employee ID', profile.empid || '-'],
       ['Grade', profile.grade || '-'],
       ['Business Unit', profile.bu || '-'],
+      ['Designation', profile.designation || profile.grade || '-'],
+      ['Location', profile.location || '-'],
       ['Overall Score', `${calculatePercentage(overallScore, overallMaxScore)} (${overallScore}/${overallMaxScore})`],
       ['Rated Skills', String(rated)],
       ['Practitioner Skills', String(strong.length)],
@@ -1097,8 +1029,8 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     ALL_SKILLS.filter((skill) => Object.prototype.hasOwnProperty.call(employee.skills, skill.id)).map((skill) => ({
       Category: STACKS.find((stack) => stack.skills.some((item) => item.id === skill.id))?.name || 'Other',
       Skill: skill.name,
-      Score: employee.skills[skill.id] ?? 0,
-      Level: LEVELS[employee.skills[skill.id] ?? 0] || '',
+      Score: Math.min(employee.skills[skill.id] ?? 0, MAX_RATING),
+      Level: LEVELS[Math.min(employee.skills[skill.id] ?? 0, MAX_RATING)] || '',
       Cover: employee.skillCovers?.[skill.id] || coverOptions(skill.covers)[0] || '',
     }));
 
@@ -1201,6 +1133,13 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
   const managerFilteredEmployees = managerEmployees.filter((employee) => {
     const metrics = getEmployeeMetrics(employee);
     const searchText = managerSearch.trim().toLowerCase();
+    const employeeIdText = managerEmployeeId.trim().toLowerCase();
+    const designationText = managerDesignation.trim().toLowerCase();
+    const locationText = managerLocation.trim().toLowerCase();
+    const skillsText = managerSkills.trim().toLowerCase();
+    const scoreThreshold = Number(managerScore || '0');
+    const digitalStackThreshold = Number(managerDigitalStackScore || '0');
+    const aiStackThreshold = Number(managerAiStackScore || '0');
     const matchesSearch =
       !searchText ||
       [employee.name, employee.employeeId, employee.designation, employee.department, employee.location, employee.grade]
@@ -1211,6 +1150,25 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
         const skillName = SKILL_NAME_BY_ID[skillId] || skillId;
         return skillName.toLowerCase().includes(searchText);
       });
+    const matchesEmployeeId = !employeeIdText || employee.employeeId.toLowerCase().includes(employeeIdText);
+    const matchesDesignation = !designationText || employee.designation.toLowerCase().includes(designationText);
+    const matchesLocation = !locationText || employee.location.toLowerCase().includes(locationText);
+    const matchesScore = !scoreThreshold || metrics.percentage >= scoreThreshold;
+    const matchesSkillCategory =
+      !managerSkillCategory ||
+      (STACKS_WITH_OTHERS.find((stack) => stack.id === managerSkillCategory)?.skills.some(
+        (skill) => (employee.skills[skill.id] || 0) > 0
+      ) ?? false);
+    const matchesSkills =
+      !skillsText ||
+      Object.keys(employee.skills).some((skillId) => {
+        const skillName = SKILL_NAME_BY_ID[skillId] || skillId;
+        return skillName.toLowerCase().includes(skillsText);
+      });
+    const digitalStackScore = getEmployeeStackPercentage(employee, DIGITAL_STACK_GROUP_IDS);
+    const aiStackScore = getEmployeeStackPercentage(employee, AI_STACK_GROUP_IDS);
+    const matchesDigitalStackScore = !digitalStackThreshold || digitalStackScore >= digitalStackThreshold;
+    const matchesAiStackScore = !aiStackThreshold || aiStackScore >= aiStackThreshold;
     const matchesCategory =
       !managerCategory ||
       STACKS_WITH_OTHERS.find((stack) => stack.id === managerCategory)?.skills.some(
@@ -1221,7 +1179,19 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       !managerRatingSkill ||
       (employee.skills[managerRatingSkill] || 0) >= ratingMin;
 
-    return matchesSearch && matchesCategory && matchesRating;
+    return (
+      matchesSearch &&
+      matchesEmployeeId &&
+      matchesDesignation &&
+      matchesLocation &&
+      matchesScore &&
+      matchesSkillCategory &&
+      matchesSkills &&
+      matchesDigitalStackScore &&
+      matchesAiStackScore &&
+      matchesCategory &&
+      matchesRating
+    );
   });
 
   const managerVisibleEmployees = [...managerFilteredEmployees]
@@ -1231,6 +1201,118 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       return metricsB.totalScore - metricsA.totalScore || metricsB.percentage - metricsA.percentage;
     })
     .slice(0, 5);
+
+  const summaryEmployees = managerEmployees;
+
+  const averageVisibleScore = summaryEmployees.length
+    ? Math.round(
+        summaryEmployees.reduce((sum, employee) => sum + getEmployeeMetrics(employee).percentage, 0) /
+          summaryEmployees.length
+      )
+    : 0;
+  const averageVisibleDigitalStack = summaryEmployees.length
+    ? Math.round(
+        summaryEmployees.reduce(
+          (sum, employee) => sum + getEmployeeStackPercentage(employee, DIGITAL_STACK_GROUP_IDS),
+          0
+        ) / summaryEmployees.length
+      )
+    : 0;
+  const averageVisibleAiStack = summaryEmployees.length
+    ? Math.round(
+        summaryEmployees.reduce(
+          (sum, employee) => sum + getEmployeeStackPercentage(employee, AI_STACK_GROUP_IDS),
+          0
+        ) / summaryEmployees.length
+      )
+    : 0;
+  const averageVisibleBhStack = summaryEmployees.length
+    ? Math.round(
+        summaryEmployees.reduce(
+          (sum, employee) => sum + getEmployeeStackPercentage(employee, BH_STACK_GROUP_IDS),
+          0
+        ) / summaryEmployees.length
+      )
+    : 0;
+  const practitionerVisibleSkills = summaryEmployees.reduce(
+    (sum, employee) => sum + getEmployeeMetrics(employee).strongSkills,
+    0
+  );
+
+  const managerSummaryColumns = [
+    { label: 'Educators', value: String(summaryEmployees.length) },
+    { label: 'Digital Stack', value: `${averageVisibleDigitalStack}%` },
+    { label: 'AI Stack', value: `${averageVisibleAiStack}%` },
+    { label: 'BH Stack', value: `${averageVisibleBhStack}%` },
+    { label: 'Practitioner', value: String(practitionerVisibleSkills) },
+  ];
+
+  const analyticsEmployees = managerEmployees;
+  const analyticsEducatorScores = analyticsEmployees.map((employee) => ({
+    name: employee.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' '),
+    score: getEmployeeMetrics(employee).percentage,
+  }));
+  const analyticsCategoryScores = [
+    {
+      name: 'Digital Stack',
+      score: analyticsEmployees.length
+        ? Math.round(
+            analyticsEmployees.reduce(
+              (sum, employee) => sum + getEmployeeStackPercentage(employee, DIGITAL_STACK_GROUP_IDS),
+              0
+            ) / analyticsEmployees.length
+          )
+        : 0,
+    },
+    {
+      name: 'AI Stack',
+      score: analyticsEmployees.length
+        ? Math.round(
+            analyticsEmployees.reduce((sum, employee) => sum + getEmployeeStackPercentage(employee, AI_STACK_GROUP_IDS), 0) /
+              analyticsEmployees.length
+          )
+        : 0,
+    },
+    {
+      name: 'BH Stack',
+      score: analyticsEmployees.length
+        ? Math.round(
+            analyticsEmployees.reduce((sum, employee) => sum + getEmployeeStackPercentage(employee, BH_STACK_GROUP_IDS), 0) /
+              analyticsEmployees.length
+          )
+        : 0,
+    },
+  ];
+  const analyticsPractitionerCounts = STACKS_WITH_OTHERS.map((stack) => ({
+    name:
+      {
+        programming: 'Prog',
+        mobile: 'Mobile',
+        frontend: 'Front-end',
+        backend: 'Back-end',
+        database: 'DB',
+        api: 'API',
+        architecture: 'Arch',
+        testing: 'QA',
+        devopsstack: 'DevOps',
+        agilescrum: 'Agile',
+        cloudinfra: 'Cloud',
+        cybersecuritystack: 'Cyber',
+        dataengml: 'Data Engg',
+        industryplatforms: 'Industry',
+        aigenaiaagentic: 'AI',
+        voiceaccent: 'V&A',
+        corebehavioural: 'BH',
+      }[stack.id] || stack.name,
+    practitioners: analyticsEmployees.reduce((count, employee) => {
+      const hasPractitioner = stack.skills.some((skill) => !skill.id.toLowerCase().endsWith('_others') && (employee.skills[skill.id] || 0) >= 2);
+      return count + (hasPractitioner ? 1 : 0);
+    }, 0),
+  }));
 
   const managerCategoryOptions = STACKS_WITH_OTHERS.map((stack) => ({ id: stack.id, name: stack.name }));
   const managerSkillOptions = ALL_SKILLS.map((skill) => ({ id: skill.id, name: skill.name }));
@@ -1333,6 +1415,26 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                         </select>
                       </div>
                     </div>
+                    <div className="field-row2">
+                      <div className="field">
+                        <label>Designation</label>
+                        <input
+                          name="designation"
+                          value={profile.designation}
+                          onChange={handleProfileChange}
+                          placeholder="e.g. Full Stack Educator"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Location</label>
+                        <input
+                          name="location"
+                          value={profile.location}
+                          onChange={handleProfileChange}
+                          placeholder="e.g. Chennai"
+                        />
+                      </div>
+                    </div>
                     <button className="btn btn-primary btn-sm" onClick={saveProfile}>
                       Save Profile
                     </button>
@@ -1396,41 +1498,6 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                         </button>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--gray-md)', fontWeight: '600' }}>
-                        {activeStacks.length ? `${activeCardIndex + 1} / ${activeStacks.length}` : '0 / 0'}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <button
-                          className="btn btn-sec btn-sm"
-                          onClick={goToPrevStack}
-                          disabled={!activeStacks.length || activeCardIndex === 0}
-                          style={{
-                            opacity: !activeStacks.length || activeCardIndex === 0 ? 0.5 : 1,
-                            cursor: !activeStacks.length || activeCardIndex === 0 ? 'not-allowed' : 'pointer',
-                          }}
-                        >
-                          Prev
-                        </button>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={goToNextStack}
-                          disabled={!activeStacks.length || activeCardIndex >= activeStacks.length - 1}
-                          style={{
-                            opacity:
-                              !activeStacks.length || activeCardIndex >= activeStacks.length - 1
-                                ? 0.5
-                                : 1,
-                            cursor:
-                              !activeStacks.length || activeCardIndex >= activeStacks.length - 1
-                                ? 'not-allowed'
-                                : 'pointer',
-                          }}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
                   </div>
 
                   {activeStack ? (
@@ -1454,126 +1521,135 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                             <tr>
                               <th style={{ textAlign: 'left', minWidth: '120px' }}>Skill</th>
                               <th style={{ textAlign: 'left', minWidth: '200px' }}>Covers</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>0</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>1</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>2</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>3</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>4</th>
-                              <th style={{ textAlign: 'center', width: '30px' }}>5</th>
+                              <th className="rating-col" style={{ textAlign: 'center' }}>0</th>
+                              <th className="rating-col" style={{ textAlign: 'center' }}>1</th>
+                              <th className="rating-col" style={{ textAlign: 'center' }}>2</th>
+                              <th className="rating-col" style={{ textAlign: 'center' }}>3</th>
+                              <th className="rating-col" style={{ textAlign: 'center' }}>4</th>
                             </tr>
                           </thead>
                           <thead style={{ background: 'var(--gray-ltest)', fontSize: '9px', color: 'var(--gray-md)', fontWeight: '600' }}>
                             <tr>
                               <th colSpan={2}></th>
-                              <th style={{ textAlign: 'center' }}>None</th>
-                              <th style={{ textAlign: 'center' }}>Novice</th>
+                              <th style={{ textAlign: 'center' }}>No knowledge</th>
                               <th style={{ textAlign: 'center' }}>Aware</th>
-                              <th style={{ textAlign: 'center' }}>Pract.</th>
-                              <th style={{ textAlign: 'center' }}>Prof.</th>
+                              <th style={{ textAlign: 'center' }}>Practitioner</th>
+                              <th style={{ textAlign: 'center' }}>Advanced</th>
                               <th style={{ textAlign: 'center' }}>Expert</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {activeStack.skills.map((skill) => (
-                              <tr key={skill.id}>
-                                <td className="sname">{skill.name}</td>
-                                <td style={{ fontSize: '11px', color: 'var(--gray-dk)' }}>
-                                  {skill.name === 'Others' ? (
-                                    <input
-                                      type="text"
-                                      value={primaryCovers[skill.id] || ''}
-                                      onChange={(e) =>
-                                        setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
-                                      }
-                                      placeholder="Enter cover"
-                                      style={{
-                                        width: '100%',
-                                        maxWidth: '240px',
-                                        padding: '6px 8px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--gray-lt)',
-                                        background: 'white',
-                                        color: 'var(--gray-dk)',
-                                        fontSize: '11px',
-                                      }}
-                                    />
-                                  ) : (
-                                    <select
-                                      value={primaryCovers[skill.id] || coverOptions(skill.covers)[0] || ''}
-                                      onChange={(e) =>
-                                        setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
-                                      }
-                                      style={{
-                                        width: '100%',
-                                        maxWidth: '240px',
-                                        padding: '6px 8px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--gray-lt)',
-                                        background: 'white',
-                                        color: 'var(--gray-dk)',
-                                        fontSize: '11px',
-                                      }}
-                                    >
-                                      {coverOptions(skill.covers).map((cover) => (
-                                        <option key={cover} value={cover}>
-                                          {cover}
-                                        </option>
+                            {activeStack.skills.filter((skill) => skill.name !== 'Others').map((skill) => (
+                              (() => {
+                                const coverNames = getSkillCoverNames(skill);
+                                return coverNames.map((coverName, coverIndex) => {
+                                  const rowKey = `${skill.id}-${coverName}-${coverIndex}`;
+                                  const displayCover = skill.name === 'Others' ? primaryCovers[skill.id] || 'Custom cover' : coverName;
+                                  const isFirstRow = coverIndex === 0;
+                                  const skillRating = skill.name === 'Others' ? coverRatings[skill.id]?.[displayCover] : coverRatings[skill.id]?.[coverName];
+
+                                  return (
+                                    <tr key={rowKey}>
+                                      {isFirstRow ? (
+                                        <td className="sname" rowSpan={coverNames.length}>
+                                          {skill.name}
+                                        </td>
+                                      ) : null}
+                                      <td style={{ fontSize: '11px', color: 'var(--gray-dk)' }}>
+                                        {skill.name === 'Others' ? (
+                                          <input
+                                            type="text"
+                                            value={primaryCovers[skill.id] || ''}
+                                            onChange={(e) =>
+                                              setPrimaryCovers((prev) => ({ ...prev, [skill.id]: e.target.value }))
+                                            }
+                                            placeholder="Enter cover"
+                                            style={{
+                                              width: '100%',
+                                              maxWidth: '240px',
+                                              padding: '6px 8px',
+                                              borderRadius: '6px',
+                                              border: '1px solid var(--gray-lt)',
+                                              background: 'white',
+                                              color: 'var(--gray-dk)',
+                                              fontSize: '11px',
+                                            }}
+                                          />
+                                        ) : (
+                                          displayCover
+                                        )}
+                                      </td>
+                                      {[0, 1, 2, 3, 4].map((score) => (
+                                        <td key={`${rowKey}-${score}`} className="rating-col">
+                                          <button
+                                            type="button"
+                                            className={`rpip rpip-mini ${skillRating === score ? `sel-${score}` : ''}`}
+                                            onClick={() => setCoverRating(skill.id, displayCover, score)}
+                                            style={{
+                                              background: skillRating === score ? scColor(score) : 'var(--gray-ltest)',
+                                              color:
+                                                skillRating === score && score === 3
+                                                  ? 'var(--primary)'
+                                                  : skillRating === score
+                                                    ? 'white'
+                                                    : 'var(--gray-md)',
+                                            }}
+                                          >
+                                            {score}
+                                          </button>
+                                        </td>
                                       ))}
-                                    </select>
-                                  )}
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    className={`rpip ${
-                                      ratings[skill.id] === 0
-                                        ? `sel-0`
-                                        : ''
-                                    }`}
-                                    onClick={() => setRating(skill.id, 0)}
-                                    style={{
-                                      background:
-                                        ratings[skill.id] === 0
-                                          ? scColor(0)
-                                          : 'var(--gray-ltest)',
-                                      color:
-                                        ratings[skill.id] === 0
-                                          ? 'white'
-                                          : 'var(--gray-md)',
-                                    }}
-                                  >
-                                    —
-                                  </button>
-                                </td>
-                                {[1, 2, 3, 4, 5].map((score) => (
-                                  <td key={score} style={{ textAlign: 'center' }}>
-                                    <button
-                                      className={`rpip ${
-                                        ratings[skill.id] === score
-                                          ? `sel-${score}`
-                                          : ''
-                                      }`}
-                                      onClick={() => setRating(skill.id, score)}
-                                      style={{
-                                        background:
-                                          ratings[skill.id] === score
-                                            ? scColor(score)
-                                            : 'var(--gray-ltest)',
-                                        color:
-                                          ratings[skill.id] === score && score === 3
-                                            ? 'var(--primary)'
-                                            : ratings[skill.id] === score
-                                              ? 'white'
-                                              : 'var(--gray-md)',
-                                      }}
-                                    >
-                                      {score}
-                                    </button>
-                                  </td>
-                                ))}
-                              </tr>
+                                    </tr>
+                                  );
+                                });
+                              })()
                             ))}
                           </tbody>
                         </table>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '10px',
+                            flexWrap: 'wrap',
+                            marginTop: '1rem',
+                          }}
+                        >
+                          <div style={{ fontSize: '12px', color: 'var(--gray-md)', fontWeight: '600' }}>
+                            {activeStacks.length ? `${activeCardIndex + 1} / ${activeStacks.length}` : '0 / 0'}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              className="btn btn-sec btn-sm"
+                              onClick={goToPrevStack}
+                              disabled={!activeStacks.length || activeCardIndex === 0}
+                              style={{
+                                opacity: !activeStacks.length || activeCardIndex === 0 ? 0.5 : 1,
+                                cursor: !activeStacks.length || activeCardIndex === 0 ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              Prev
+                            </button>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={goToNextStack}
+                              disabled={!activeStacks.length || activeCardIndex >= activeStacks.length - 1}
+                              style={{
+                                opacity:
+                                  !activeStacks.length || activeCardIndex >= activeStacks.length - 1
+                                    ? 0.5
+                                    : 1,
+                                cursor:
+                                  !activeStacks.length || activeCardIndex >= activeStacks.length - 1
+                                    ? 'not-allowed'
+                                    : 'pointer',
+                              }}
+                            >
+                              Next
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -1584,11 +1660,6 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                   <button
                     className="btn btn-primary"
                     onClick={submitRatings}
-                    disabled={rated < TOTAL}
-                    style={{
-                      opacity: rated < TOTAL ? 0.5 : 1,
-                      cursor: rated < TOTAL ? 'not-allowed' : 'pointer',
-                    }}
                   >
                     Submit Ratings ({rated}/{TOTAL})
                   </button>
@@ -1776,149 +1847,277 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
             <div className="ph-title">Manager Dashboard</div>
             <div className="ph-desc">Team skill assessment overview with employee search and rating filters.</div>
 
-            <div className="prog-strip" style={{ marginTop: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: '600', marginBottom: '4px' }}>Employees</div>
-                <div className="prog-pct" style={{ minWidth: 'auto' }}>{managerVisibleEmployees.length}</div>
-              </div>
-              <div className="pstat">
-                <div className="v">{managerVisibleEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) ? Math.round(managerVisibleEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).percentage, 0) / managerVisibleEmployees.length) : 0}%</div>
-                <div className="l">Avg score</div>
-              </div>
-              <div className="pstat">
-                <div className="v">{managerVisibleEmployees.reduce((sum, emp) => sum + getEmployeeMetrics(emp).strongSkills, 0)}</div>
-                <div className="l">Practitioner skills</div>
-              </div>
-            </div>
-
-            <div className="card" style={{ marginTop: '1.5rem' }}>
-              <div className="card-body">
-                <div className="field-row2">
-                  <div className="field">
-                    <label>Search employees or skills</label>
-                    <input
-                      type="text"
-                      value={managerSearch}
-                      onChange={(e) => setManagerSearch(e.target.value)}
-                      placeholder="Name, employee ID, skill, designation, department"
-                    />
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <div className="card-body" style={{ padding: 0 }}>
+                <div style={{ padding: '1rem 1rem 0.25rem' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-md)' }}>
+                    Summary
                   </div>
-                  <div className="field">
-                    <label>Category</label>
-                    <select value={managerCategory} onChange={(e) => setManagerCategory(e.target.value)}>
-                      <option value="">All categories</option>
-                      {managerCategoryOptions.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                    Average Score
                   </div>
                 </div>
-                <div className="field-row2">
-                  <div className="field">
-                    <label>Advanced rating skill</label>
-                    <select value={managerRatingSkill} onChange={(e) => setManagerRatingSkill(e.target.value)}>
-                      <option value="">Any skill</option>
-                      {managerSkillOptions.map((skill) => (
-                        <option key={skill.id} value={skill.id}>
-                          {skill.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>Minimum rating</label>
-                    <select value={managerRatingMin} onChange={(e) => setManagerRatingMin(e.target.value)}>
-                      <option value="5">5</option>
-                      <option value="4">4</option>
-                      <option value="3">3</option>
-                      <option value="2">2</option>
-                      <option value="1">1</option>
-                    </select>
-                  </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="manager-table">
+                    <thead>
+                      <tr>
+                        {managerSummaryColumns.map((column) => (
+                          <th key={column.label} style={{ textAlign: 'center' }}>
+                            {column.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        {managerSummaryColumns.map((column) => (
+                          <td key={column.label} style={{ textAlign: 'center', fontWeight: 700 }}>
+                            {column.value}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
 
             <div className="card" style={{ marginTop: '1rem' }}>
               <div className="card-body" style={{ padding: 0 }}>
+                <div style={{ padding: '1rem 1rem 0.25rem' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                    TOP FSE EDUCATORS
+                  </div>
+                </div>
                 <div style={{ overflowX: 'auto' }}>
                   <table className="manager-table">
                     <thead>
                       <tr>
-                        <th>Employee</th>
+                        <th>Name</th>
+                        <th>Employee ID</th>
                         <th>Designation</th>
-                        <th>Department</th>
                         <th>Location</th>
                         <th style={{ textAlign: 'center' }}>Score</th>
-                        <th style={{ textAlign: 'center' }}>Marks</th>
-                        <th style={{ textAlign: 'center' }}>Skills</th>
-                        <th style={{ textAlign: 'center' }}>Practitioner</th>
-                        <th>Top Skills</th>
-                        <th>Submitted</th>
+                        <th>Core Skills</th>
                       </tr>
                     </thead>
                     <tbody>
                       {managerVisibleEmployees.map((employee) => {
                         const metrics = getEmployeeMetrics(employee);
-                        const submittedOn = employee.submittedAt
-                          ? new Date(employee.submittedAt).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })
-                          : '-';
+                        const displayName = employee.name
+                          .split(/\s+/)
+                          .filter(Boolean)
+                          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                          .join(' ');
 
                         return (
                           <tr key={employee.id}>
                             <td>
                               <div style={{ display: 'grid', gap: '4px' }}>
-                                <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{employee.name}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--gray-md)', fontWeight: 600 }}>
-                                  Employee ID: {employee.employeeId}
-                                </div>
+                                <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
                               </div>
                             </td>
+                            <td style={{ fontWeight: 600, color: 'var(--gray-dk)' }}>{employee.employeeId}</td>
                             <td>{employee.designation || '-'}</td>
-                            <td>{employee.department || '-'}</td>
                             <td>{employee.location || '-'}</td>
                             <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--primary)' }}>{metrics.percentage}%</td>
-                            <td style={{ textAlign: 'center' }}>{metrics.totalScore}</td>
-                            <td style={{ textAlign: 'center' }}>{metrics.ratedSkills}</td>
-                            <td style={{ textAlign: 'center' }}>{metrics.strongSkills}</td>
                             <td>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                {metrics.topSkills
-                                  .filter((skill) => {
+                              <span style={{ fontSize: '11px', color: 'var(--gray-dk)', lineHeight: 1.5 }}>
+                                {(() => {
+                                  const coreSkills = metrics.topSkills.filter((skill) => {
                                     const normalizedSkillId = skill.skillId.trim().toLowerCase();
                                     return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
-                                  })
-                                  .map((skill) => (
-                                    <span
-                                      key={skill.skillId}
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        padding: '5px 8px',
-                                        borderRadius: '999px',
-                                        background: 'var(--gray-ltest)',
-                                        fontSize: '11px',
-                                        color: 'var(--primary)',
-                                      }}
-                                    >
-                                      {SKILL_NAME_BY_ID[skill.skillId] || skill.skillId}: {skill.score}
-                                    </span>
-                                  ))}
-                              </div>
+                                  });
+                                  const highestRating = coreSkills.length ? Math.max(...coreSkills.map((skill) => skill.score)) : 0;
+                                  return coreSkills
+                                    .filter((skill) => skill.score === highestRating)
+                                    .map((skill) => SKILL_NAME_BY_ID[skill.skillId] || skill.skillId)
+                                    .join(', ');
+                                })() || '-'}
+                              </span>
                             </td>
-                            <td>{submittedOn}</td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ marginTop: '1.5rem' }}>
+              <div className="card-body">
+                <div style={{ padding: '0 0 0.75rem' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                    Search Educators
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                  <div className="field">
+                    <label>Name</label>
+                    <input
+                      type="text"
+                      value={managerSearch}
+                      onChange={(e) => setManagerSearch(e.target.value)}
+                      placeholder="Search educator name"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>EMPLOYEE ID</label>
+                    <input
+                      type="text"
+                      value={managerEmployeeId}
+                      onChange={(e) => setManagerEmployeeId(e.target.value)}
+                      placeholder="Employee ID"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>DESIGNATION</label>
+                    <input
+                      type="text"
+                      value={managerDesignation}
+                      onChange={(e) => setManagerDesignation(e.target.value)}
+                      placeholder="Designation"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>LOCATION</label>
+                    <input
+                      type="text"
+                      value={managerLocation}
+                      onChange={(e) => setManagerLocation(e.target.value)}
+                      placeholder="Location"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>SCORE</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={managerScore}
+                      onChange={(e) => setManagerScore(e.target.value)}
+                      placeholder="Minimum score"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Skill Category</label>
+                    <select value={managerSkillCategory} onChange={(e) => setManagerSkillCategory(e.target.value)}>
+                      <option value="">All categories</option>
+                      {STACKS_WITH_OTHERS.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>Skills</label>
+                    <input
+                      type="text"
+                      value={managerSkills}
+                      onChange={(e) => setManagerSkills(e.target.value)}
+                      placeholder="Search skills"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Digital AI stack score</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={managerDigitalStackScore}
+                      onChange={(e) => setManagerDigitalStackScore(e.target.value)}
+                      placeholder="Minimum digital stack score"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>AI stack score</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={managerAiStackScore}
+                      onChange={(e) => setManagerAiStackScore(e.target.value)}
+                      placeholder="Minimum AI stack score"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <div className="card-body">
+                <div style={{ padding: '0 0 0.75rem' }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                    Analytics
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--gray-md)', marginTop: '4px' }}>
+                    Visual summary of educator scores, category averages, and practitioner coverage.
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+                  <div style={{ border: '1px solid var(--gray-ltr)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
+                      Educator Score Chart
+                    </div>
+                    <div style={{ width: '100%', height: '280px' }}>
+                      <ResponsiveContainer>
+                        <BarChart data={analyticsEducatorScores} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" angle={-20} textAnchor="end" interval={0} height={60} />
+                          <YAxis domain={[0, 100]} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="score" name="Score %" radius={[8, 8, 0, 0]} fill="#2F78C4">
+                            {analyticsEducatorScores.map((entry, index) => (
+                              <Cell key={entry.name} fill={index % 2 === 0 ? '#2F78C4' : '#06C7CC'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div style={{ border: '1px solid var(--gray-ltr)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
+                      Skill Category Averages
+                    </div>
+                    <div style={{ width: '100%', height: '280px' }}>
+                      <ResponsiveContainer>
+                        <BarChart data={analyticsCategoryScores} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis domain={[0, 100]} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="score" name="Average %" radius={[8, 8, 0, 0]} fill="#06C7CC">
+                            {analyticsCategoryScores.map((entry, index) => (
+                              <Cell key={entry.name} fill={index % 2 === 0 ? '#06C7CC' : '#7373D8'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div style={{ border: '1px solid var(--gray-ltr)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
+                      Practitioner Count by Skill Family
+                    </div>
+                    <div style={{ width: '100%', height: '280px' }}>
+                      <ResponsiveContainer>
+                        <BarChart data={analyticsPractitionerCounts} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" angle={-20} textAnchor="end" interval={0} height={60} tick={{ fontSize: 9 }} />
+                          <YAxis allowDecimals={false} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="practitioners" name="Practitioners" radius={[8, 8, 0, 0]} fill="#2E308E" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1952,3 +2151,4 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
 }
 
 export default HeatMapPage;
+

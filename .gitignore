@@ -27,6 +27,7 @@ dist/
 # Spring Boot
 .springBeans
 spring.log
+application_local.yml
 
 # VS Code
 .vscode/

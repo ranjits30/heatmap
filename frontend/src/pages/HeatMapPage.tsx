@@ -967,6 +967,42 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     return maxScore === 0 ? '0%' : `${Math.round((score / maxScore) * 100)}%`;
   };
 
+  const testingSkillIds = STACKS_WITH_OTHERS.find((stack) => stack.id === 'testing')?.skills.map((skill) => skill.id) || [];
+  const maxTestingSkillRating = testingSkillIds.reduce(
+    (maxRating, skillId) => Math.max(maxRating, Math.min(ratings[skillId] || 0, MAX_RATING)),
+    0
+  );
+  const qeaScore = calculatePercentage(maxTestingSkillRating, MAX_RATING);
+
+  const digitalStackIds = ['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'];
+  const baseDigitalStackScore = calculateCategoryScore(digitalStackIds);
+
+  const cloudInfraScore = calculateCategoryScore(['cloudinfra']);
+  const cloudInfraMax = calculateMaxScore(['cloudinfra']);
+  const cybersecScore = calculateCategoryScore(['cybersecuritystack']);
+  const cybersecMax = calculateMaxScore(['cybersecuritystack']);
+  const dataEngMlScore = calculateCategoryScore(['dataengml']);
+  const dataEngMlMax = calculateMaxScore(['dataengml']);
+  const productsPlatformsScore = calculateCategoryScore(['industryplatforms']);
+  const productsPlatformsMax = calculateMaxScore(['industryplatforms']);
+  const digitalStackComponents = [
+    baseDigitalStackScore,
+    cloudInfraScore,
+    cybersecScore,
+    dataEngMlScore,
+    productsPlatformsScore,
+    maxTestingSkillRating,
+  ];
+  const digitalStackScore =
+    digitalStackComponents.length > 0
+      ? digitalStackComponents.reduce((sum, score) => sum + score, 0) / digitalStackComponents.length
+      : 0;
+  const digitalStackScoreDisplay = Number(digitalStackScore.toFixed(1));
+  const digitalStackMax = MAX_RATING;
+
+  const aiStackScore = calculateCategoryScore(['aigenaiaagentic']);
+  const aiStackMax = calculateMaxScore(['aigenaiaagentic']);
+
   const gaps = ALL_SKILLS.filter((s) => (ratings[s.id] || 0) > 0 && (ratings[s.id] || 0) < 3).sort(
     (a, b) => Math.min(ratings[a.id] || 0, MAX_RATING) - Math.min(ratings[b.id] || 0, MAX_RATING)
   );
@@ -1382,7 +1418,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     { label: 'Digital Stack', value: `${averageVisibleDigitalStack}%` },
     { label: 'AI Stack', value: `${averageVisibleAiStack}%` },
     { label: 'BH Stack', value: `${averageVisibleBhStack}%` },
-    { label: 'Practitioner', value: String(practitionerVisibleSkills) },
+    { label: '#Practitioner skill', value: String(practitionerVisibleSkills) },
   ];
 
   const analyticsEmployees = managerEmployees;
@@ -1425,23 +1461,25 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
         : 0,
     },
   ];
+  const getCategoryAndSkillIds = (stackIds: string[]) => Array.from(new Set([...stackIds, ...getStackSkillIds(stackIds)]));
+
   const practitionerCategoryGroups = [
-    { name: 'Prog Lang', skillIds: getStackSkillIds(['programming']) },
-    { name: 'Mobile', skillIds: getStackSkillIds(['mobile']) },
-    { name: 'Frontend', skillIds: getStackSkillIds(['frontend']) },
-    { name: 'Backend', skillIds: getStackSkillIds(['backend']) },
-    { name: 'DB', skillIds: ['database'] },
-    { name: 'API', skillIds: ['api'] },
-    { name: 'Arch', skillIds: ['architecture'] },
-    { name: 'Testing', skillIds: ['testing'] },
-    { name: 'DevOps', skillIds: ['devopsstack'] },
-    { name: 'Agile/Scrum', skillIds: ['agilescrum'] },
-    { name: 'Cloud & Infra', skillIds: ['cloudinfra'] },
-    { name: 'Cybersecurity', skillIds: ['cybersecuritystack'] },
+    { name: 'Prog Lang', skillIds: getCategoryAndSkillIds(['programming']) },
+    { name: 'Mobile', skillIds: getCategoryAndSkillIds(['mobile']) },
+    { name: 'Frontend', skillIds: getCategoryAndSkillIds(['frontend']) },
+    { name: 'Backend', skillIds: getCategoryAndSkillIds(['backend']) },
+    { name: 'DB', skillIds: getCategoryAndSkillIds(['database']) },
+    { name: 'API', skillIds: getCategoryAndSkillIds(['api']) },
+    { name: 'Arch', skillIds: getCategoryAndSkillIds(['architecture']) },
+    { name: 'Testing', skillIds: getCategoryAndSkillIds(['testing']) },
+    { name: 'DevOps', skillIds: getCategoryAndSkillIds(['devopsstack']) },
+    { name: 'Agile/Scrum', skillIds: getCategoryAndSkillIds(['agilescrum']) },
+    { name: 'Cloud & Infra', skillIds: getCategoryAndSkillIds(['cloudinfra']) },
+    { name: 'Cybersecurity', skillIds: getCategoryAndSkillIds(['cybersecuritystack']) },
     { name: 'Data Engg', skillIds: ['de_data_engineering'] },
     { name: 'Analytics & ML', skillIds: ['de_machine_learning', 'de_data_analytics', 'de_big_data', 'de_database'] },
-    { name: 'Industry', skillIds: getStackSkillIds(['industryplatforms']) },
-    { name: 'AI', skillIds: ['aigenaiaagentic', 'ai_core_tech', 'genai_llms', 'genai_prompt_engineering', 'genai_context_handling', 'agentic_langchain', 'agentic_langgraph', 'agentic_crewai', 'agentic_autogpt'] },
+    { name: 'Industry', skillIds: getCategoryAndSkillIds(['industryplatforms']) },
+    { name: 'AI', skillIds: getCategoryAndSkillIds(['aigenaiaagentic']) },
   ] as const;
 
   const analyticsPractitionerCounts = practitionerCategoryGroups.map((category) => ({
@@ -1451,6 +1489,21 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       0
     ),
   }));
+
+  const analyticsRoleCounts = [
+    {
+      role: 'FSE',
+      count: analyticsEmployees.filter((employee) => /\bFSE\b/i.test(employee.designation || '')).length,
+    },
+    {
+      role: 'PFSE',
+      count: analyticsEmployees.filter((employee) => /\bPFSE\b/i.test(employee.designation || '')).length,
+    },
+    {
+      role: 'SFSE',
+      count: analyticsEmployees.filter((employee) => /\bSFSE\b/i.test(employee.designation || '')).length,
+    },
+  ];
 
   const managerCategoryOptions = STACKS_WITH_OTHERS.map((stack) => ({ id: stack.id, name: stack.name }));
   const managerSkillOptions = ALL_SKILLS.map((skill) => ({ id: skill.id, name: skill.name }));
@@ -1525,7 +1578,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           name="empid"
                           value={profile.empid}
                           onChange={handleProfileChange}
-                          placeholder="EMP ID"
+                          placeholder="e.g. 123456"
                         />
                       </div>
                     </div>
@@ -1875,69 +1928,49 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                       <div style={{ fontSize: '22px', fontWeight: '700', color: 'white', marginBottom: '4px', lineHeight: 1.1 }}>
                         {calculatePercentage(overallScore, overallMaxScore)}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                        {overallScore}/{overallMaxScore}
-                      </div>
                     </div>
                   </div>
                   <div style={{ marginBottom: '1rem' }}>
                     <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--a3m)', marginBottom: '0.75rem', textTransform: 'uppercase' }}>
                       Technical
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 2fr) minmax(180px, 1fr)', gap: '8px', alignItems: 'start' }}>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
                         <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
                           Digital Stack Score
                         </div>
                         <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
-                          {calculatePercentage(calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum']), calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum']))}
+                          {calculatePercentage(digitalStackScore, digitalStackMax)}
                         </div>
                         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                          {calculateCategoryScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}/{calculateMaxScore(['programming', 'mobile', 'frontend', 'backend', 'database', 'api', 'architecture', 'testing', 'devopsstack', 'agilescrum'])}
+                          {digitalStackScoreDisplay}/{digitalStackMax}
                         </div>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                          Cloud & Infra Score
-                        </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
-                          {calculatePercentage(calculateCategoryScore(['cloudinfra']), calculateMaxScore(['cloudinfra']))}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                          {calculateCategoryScore(['cloudinfra'])}/{calculateMaxScore(['cloudinfra'])}
-                        </div>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                          Cybersec Score
-                        </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
-                          {calculatePercentage(calculateCategoryScore(['cybersecuritystack']), calculateMaxScore(['cybersecuritystack']))}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                          {calculateCategoryScore(['cybersecuritystack'])}/{calculateMaxScore(['cybersecuritystack'])}
-                        </div>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                          Data Engg, Analytics & ML Score
-                        </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
-                          {calculatePercentage(calculateCategoryScore(['dataengml']), calculateMaxScore(['dataengml']))}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                          {calculateCategoryScore(['dataengml'])}/{calculateMaxScore(['dataengml'])}
-                        </div>
-                      </div>
-                      <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
-                        <div style={{ fontSize: '9px', color: 'white', textTransform: 'uppercase', marginBottom: '3px' }}>
-                          Products & Platforms Score
-                        </div>
-                        <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
-                          {calculatePercentage(calculateCategoryScore(['industryplatforms']), calculateMaxScore(['industryplatforms']))}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                          {calculateCategoryScore(['industryplatforms'])}/{calculateMaxScore(['industryplatforms'])}
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,.18)', marginTop: '8px', paddingTop: '8px' }}>
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,.9)', textTransform: 'uppercase', marginBottom: '5px', letterSpacing: '0.04em' }}>
+                            Digital Stack Breakdown
+                          </div>
+                          <div style={{ display: 'grid', gap: '4px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,.9)' }}>
+                              <span>Cloud & Infra</span>
+                              <span>{cloudInfraScore}/{cloudInfraMax} ({calculatePercentage(cloudInfraScore, cloudInfraMax)})</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,.9)' }}>
+                              <span>Cybersec</span>
+                              <span>{cybersecScore}/{cybersecMax} ({calculatePercentage(cybersecScore, cybersecMax)})</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,.9)' }}>
+                              <span>Data Engg., Analytics & ML</span>
+                              <span>{dataEngMlScore}/{dataEngMlMax} ({calculatePercentage(dataEngMlScore, dataEngMlMax)})</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,.9)' }}>
+                              <span>Products & Platforms</span>
+                              <span>{productsPlatformsScore}/{productsPlatformsMax} ({calculatePercentage(productsPlatformsScore, productsPlatformsMax)})</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,.9)' }}>
+                              <span>QEA</span>
+                              <span>{maxTestingSkillRating}/{MAX_RATING} ({qeaScore})</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <div style={{ background: 'rgba(255,255,255,.07)', padding: '9px 12px', borderRadius: '6px' }}>
@@ -1945,10 +1978,10 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           AI Stack Score
                         </div>
                         <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', marginBottom: '4px' }}>
-                          {calculatePercentage(calculateCategoryScore(['aigenaiaagentic']), calculateMaxScore(['aigenaiaagentic']))}
+                          {calculatePercentage(aiStackScore, aiStackMax)}
                         </div>
                         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.7)' }}>
-                          {calculateCategoryScore(['aigenaiaagentic'])}/{calculateMaxScore(['aigenaiaagentic'])}
+                          {aiStackScore}/{aiStackMax}
                         </div>
                       </div>
                     </div>
@@ -2008,153 +2041,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
             <div className="ph-eyebrow">Dashboard</div>
             <div className="ph-title">Manager Dashboard</div>
 
-            <div className="card" style={{ marginTop: '1rem' }}>
-              <div className="card-body" style={{ padding: 0 }}>
-                <div style={{ padding: '1rem 1rem 0.25rem' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
-                    Average Score Summary
-                  </div>
-                </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="manager-table top-fse-table" style={{ width: '100%' }}>
-                    <thead>
-                      <tr>
-                        {managerSummaryColumns.map((column) => (
-                          <th key={column.label} style={{ textAlign: 'center' }}>
-                            {column.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        {managerSummaryColumns.map((column) => (
-                          <td key={column.label} style={{ textAlign: 'center', fontWeight: 700 }}>
-                            {column.value}
-                          </td>
-                        ))}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="card" style={{ marginTop: '1rem' }}>
-              <div className="card-body" style={{ padding: 0 }}>
-                <div style={{ padding: '1rem 1rem 0.25rem' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
-                    TOP FSE EDUCATORS
-                  </div>
-                </div>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="manager-table">
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: 'center' }}>Name</th>
-                        <th style={{ textAlign: 'center' }}>Employee ID</th>
-                        <th style={{ textAlign: 'center' }}>Role</th>
-                        <th style={{ textAlign: 'center' }}>Location</th>
-                        <th style={{ textAlign: 'center' }}>Score</th>
-                        <th style={{ textAlign: 'center' }}>Core Skills</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {managerTopEmployees.map((employee) => {
-                        const metrics = getEmployeeMetrics(employee);
-                        const displayName = employee.name
-                          .split(/\s+/)
-                          .filter(Boolean)
-                          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-                          .join(' ');
-
-                        return (
-                          <tr key={employee.id}>
-                            <td style={{ textAlign: 'center' }}>
-                              <div style={{ display: 'grid', gap: '4px', justifyItems: 'center' }}>
-                                <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
-                              </div>
-                            </td>
-                            <td style={{ fontWeight: 600, color: 'var(--gray-dk)', textAlign: 'center' }}>{employee.employeeId}</td>
-                            <td style={{ textAlign: 'center' }}>{employee.designation || '-'}</td>
-                            <td style={{ textAlign: 'center' }}>{employee.location || '-'}</td>
-                            <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--primary)' }}>{metrics.percentage}%</td>
-                            <td style={{ textAlign: 'center' }}>
-                              <span style={{ fontSize: '11px', color: 'var(--gray-dk)', lineHeight: 1.5 }}>
-                                {(() => {
-                                  const coreSkills = metrics.topSkills.filter((skill) => {
-                                    const normalizedSkillId = skill.skillId.trim().toLowerCase();
-                                    return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
-                                  });
-                                  const highestRating = coreSkills.length ? Math.max(...coreSkills.map((skill) => skill.score)) : 0;
-                                  return coreSkills
-                                    .filter((skill) => skill.score === highestRating)
-                                    .map((skill) => getSkillCoverText(skill.skillId, employee))
-                                    .join(', ');
-                                })() || '-'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="card" style={{ marginTop: '1rem' }}>
-              <div className="card-body">
-                <div style={{ padding: '0 0 0.75rem' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
-                    Analytics
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-                  <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
-                      Skill Category Averages
-                    </div>
-                    <div style={{ width: '100%', height: '280px' }}>
-                      <ResponsiveContainer>
-                        <BarChart data={analyticsCategoryScores} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis domain={[0, 100]} />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="score" name="Average %" radius={[8, 8, 0, 0]} fill="#06C7CC">
-                            {analyticsCategoryScores.map((entry, index) => (
-                              <Cell key={entry.name} fill={index % 2 === 0 ? '#06C7CC' : '#7373D8'} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
-                      Practitioner Count by Skill Family
-                    </div>
-                    <div style={{ width: '100%', height: '280px' }}>
-                      <ResponsiveContainer>
-                        <BarChart data={analyticsPractitionerCounts} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" angle={-20} textAnchor="end" interval={0} height={60} tick={{ fontSize: 9 }} />
-                          <YAxis allowDecimals={false} />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="practitioners" name="Practitioners" radius={[8, 8, 0, 0]} fill="#2E308E" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="section-tabs" style={{ marginTop: '1.5rem' }}>
+            <div className="section-tabs" style={{ marginTop: '1rem' }}>
               <button
                 className={`section-tab ${managerPageTab === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setManagerPageTab('dashboard')}
@@ -2169,6 +2056,178 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
               </button>
             </div>
 
+            {managerPageTab === 'dashboard' ? (
+              <>
+                <div className="card" style={{ marginTop: '1rem' }}>
+                  <div className="card-body" style={{ padding: 0 }}>
+                    <div style={{ padding: '1rem 1rem 0.25rem' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                        Average Score Summary
+                      </div>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="manager-table top-fse-table" style={{ width: '100%' }}>
+                        <thead>
+                          <tr>
+                            {managerSummaryColumns.map((column) => (
+                              <th key={column.label} style={{ textAlign: 'center' }}>
+                                {column.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            {managerSummaryColumns.map((column) => (
+                              <td key={column.label} style={{ textAlign: 'center', fontWeight: 700 }}>
+                                {column.value}
+                              </td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card" style={{ marginTop: '1rem' }}>
+                  <div className="card-body" style={{ padding: 0 }}>
+                    <div style={{ padding: '1rem 1rem 0.25rem' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                        TOP FSE EDUCATORS
+                      </div>
+                    </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="manager-table">
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'center' }}>Name</th>
+                            <th style={{ textAlign: 'center' }}>Employee ID</th>
+                            <th style={{ textAlign: 'center' }}>Role</th>
+                            <th style={{ textAlign: 'center' }}>Location</th>
+                            <th style={{ textAlign: 'center' }}>Score</th>
+                            <th style={{ textAlign: 'center' }}>Core Skills</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {managerTopEmployees.map((employee) => {
+                            const metrics = getEmployeeMetrics(employee);
+                            const displayName = employee.name
+                              .split(/\s+/)
+                              .filter(Boolean)
+                              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                              .join(' ');
+
+                            return (
+                              <tr key={employee.id}>
+                                <td style={{ textAlign: 'center' }}>
+                                  <div style={{ display: 'grid', gap: '4px', justifyItems: 'center' }}>
+                                    <div style={{ fontWeight: 400, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
+                                  </div>
+                                </td>
+                                <td style={{ fontWeight: 400, color: 'var(--gray-dk)', textAlign: 'center' }}>{employee.employeeId}</td>
+                                <td style={{ textAlign: 'center' }}>{employee.designation || '-'}</td>
+                                <td style={{ textAlign: 'center' }}>{employee.location || '-'}</td>
+                                <td style={{ textAlign: 'center', fontWeight: 400, color: 'var(--primary)' }}>{metrics.percentage}%</td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <span style={{ fontSize: '11px', color: 'var(--gray-dk)', lineHeight: 1.5 }}>
+                                    {(() => {
+                                      const coreSkills = metrics.topSkills.filter((skill) => {
+                                        const normalizedSkillId = skill.skillId.trim().toLowerCase();
+                                        return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
+                                      });
+                                      const highestRating = coreSkills.length ? Math.max(...coreSkills.map((skill) => skill.score)) : 0;
+                                      return coreSkills
+                                        .filter((skill) => skill.score === highestRating)
+                                        .map((skill) => getSkillCoverText(skill.skillId, employee))
+                                        .join(', ');
+                                    })() || '-'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card" style={{ marginTop: '1rem' }}>
+                  <div className="card-body">
+                    <div style={{ padding: '0 0 0.75rem' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                        Analytics
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+                        <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
+                            Skill Category Averages
+                          </div>
+                          <div style={{ width: '100%', height: '280px' }}>
+                            <ResponsiveContainer>
+                              <BarChart data={analyticsCategoryScores} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis domain={[0, 100]} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="score" name="Average %" radius={[8, 8, 0, 0]} fill="#06C7CC">
+                                  {analyticsCategoryScores.map((entry, index) => (
+                                    <Cell key={entry.name} fill={index % 2 === 0 ? '#06C7CC' : '#7373D8'} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+
+                        <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
+                            Role Based FSE Count
+                          </div>
+                          <div style={{ width: '100%', height: '280px' }}>
+                            <ResponsiveContainer>
+                              <BarChart data={analyticsRoleCounts} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="role" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="count" name="Educators" radius={[8, 8, 0, 0]} fill="#2F78C4" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white', width: '100%', maxWidth: '900px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
+                            Practitioner Count by Skill Family
+                          </div>
+                          <div style={{ width: '100%', height: '280px' }}>
+                            <ResponsiveContainer>
+                              <BarChart data={analyticsPractitionerCounts} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" angle={-20} textAnchor="end" interval={0} height={60} tick={{ fontSize: 9 }} />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="practitioners" name="Practitioners" radius={[8, 8, 0, 0]} fill="#2E308E" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
             {managerPageTab === 'search' ? (
               <>
                 <div className="card" style={{ marginTop: '1rem' }}>
@@ -2178,14 +2237,15 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                         Search Educators
                       </div>
                     </div>
-                    <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                    <div className="search-educators-layout">
+                      <div className="search-educators-row search-educators-row-1">
                       <div className="field">
                         <label>Name</label>
                         <input
                           type="text"
                           value={managerSearch}
                           onChange={(e) => setManagerSearch(e.target.value)}
-                          placeholder="Search educator name"
+                          placeholder="e.g Rakesh kumar"
                         />
                       </div>
                       <div className="field">
@@ -2194,7 +2254,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           type="text"
                           value={managerEmployeeId}
                           onChange={(e) => setManagerEmployeeId(e.target.value)}
-                          placeholder="Employee ID"
+                          placeholder="e.g 123456"
                         />
                       </div>
                       <div className="field">
@@ -2212,7 +2272,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           type="text"
                           value={managerLocation}
                           onChange={(e) => setManagerLocation(e.target.value)}
-                          placeholder="Location"
+                          placeholder="e.g. Chennai"
                         />
                       </div>
                       <div className="field">
@@ -2223,9 +2283,12 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           max="100"
                           value={managerScore}
                           onChange={(e) => setManagerScore(e.target.value)}
-                          placeholder="Minimum score"
+                          placeholder="e.g 0 percent"
                         />
                       </div>
+                      </div>
+
+                      <div className="search-educators-row search-educators-row-2">
                       <div className="field">
                         <label>Skill Category</label>
                         <select value={managerSkillCategory} onChange={(e) => setManagerSkillCategory(e.target.value)}>
@@ -2243,7 +2306,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           type="text"
                           value={managerSkills}
                           onChange={(e) => setManagerSkills(e.target.value)}
-                          placeholder="Search skills"
+                          placeholder="e.g. Java"
                         />
                       </div>
                       <div className="field">
@@ -2254,7 +2317,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           max="100"
                           value={managerDigitalStackScore}
                           onChange={(e) => setManagerDigitalStackScore(e.target.value)}
-                          placeholder="Minimum digital stack score"
+                          placeholder="e.g. 0"
                         />
                       </div>
                       <div className="field">
@@ -2265,8 +2328,9 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                           max="100"
                           value={managerAiStackScore}
                           onChange={(e) => setManagerAiStackScore(e.target.value)}
-                          placeholder="Minimum AI stack score"
+                          placeholder="e.g. 0"
                         />
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -2305,13 +2369,13 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                                 <tr key={employee.id}>
                                   <td style={{ textAlign: 'center' }}>
                                     <div style={{ display: 'grid', gap: '4px', justifyItems: 'center' }}>
-                                      <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
+                                      <div style={{ fontWeight: 400, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
                                     </div>
                                   </td>
-                                  <td style={{ fontWeight: 600, color: 'var(--gray-dk)', textAlign: 'center' }}>{employee.employeeId}</td>
+                                  <td style={{ fontWeight: 400, color: 'var(--gray-dk)', textAlign: 'center' }}>{employee.employeeId}</td>
                                   <td style={{ textAlign: 'center' }}>{employee.designation || '-'}</td>
                                   <td style={{ textAlign: 'center' }}>{employee.location || '-'}</td>
-                                  <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--primary)' }}>{metrics.percentage}%</td>
+                                  <td style={{ textAlign: 'center', fontWeight: 400, color: 'var(--primary)' }}>{metrics.percentage}%</td>
                                   <td style={{ textAlign: 'center' }}>
                                     <span style={{ fontSize: '11px', color: 'var(--gray-dk)', lineHeight: 1.5 }}>
                                       {(() => {

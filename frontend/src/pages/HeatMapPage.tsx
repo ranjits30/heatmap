@@ -155,6 +155,94 @@ const STACKS = [
     ],
   },
   {
+    id: 'database',
+    name: 'Database',
+    color: '#16A34A',
+    bg: 'linear-gradient(90deg,#16A34A,#06C7CC)',
+    skills: [
+      { id: 'sql', name: 'SQL', covers: 'PostgreSQL, MySQL, SQL Server' },
+      { id: 'nosql', name: 'NoSQL', covers: 'MongoDB, Cassandra, Redis' },
+      { id: 'rdbms', name: 'RDBMS', covers: 'Oracle, DB2' },
+    ],
+  },
+  {
+    id: 'api',
+    name: 'API',
+    color: '#2F78C4',
+    bg: 'linear-gradient(90deg,#2F78C4,#06C7CC)',
+    skills: [
+      { id: 'rest', name: 'REST', covers: 'REST APIs' },
+      { id: 'graphql', name: 'GraphQL', covers: 'GraphQL APIs' },
+      { id: 'soap', name: 'SOAP', covers: 'SOAP Web Services' },
+    ],
+  },
+  {
+    id: 'architecture',
+    name: 'Architecture',
+    color: '#7373D8',
+    bg: 'linear-gradient(90deg,#7373D8,#2F78C4)',
+    skills: [
+      { id: 'system_design', name: 'System Design', covers: 'Scalability, reliability, performance' },
+      { id: 'microservices', name: 'Microservices', covers: 'Distributed systems' },
+      { id: 'design_patterns', name: 'Design Patterns', covers: 'Reusable architecture patterns' },
+    ],
+  },
+  {
+    id: 'testing',
+    name: 'Testing',
+    color: '#06C7CC',
+    bg: 'linear-gradient(90deg,#06C7CC,#16A34A)',
+    skills: [
+      { id: 'unit_testing', name: 'Unit Testing', covers: 'JUnit, NUnit, Jest' },
+      { id: 'integration_testing', name: 'Integration Testing', covers: 'Service and API testing' },
+      { id: 'automation_testing', name: 'Automation Testing', covers: 'Selenium, Cypress, Playwright' },
+    ],
+  },
+  {
+    id: 'devopsstack',
+    name: 'DevOps',
+    color: '#16A34A',
+    bg: 'linear-gradient(90deg,#16A34A,#2F78C4)',
+    skills: [
+      { id: 'ci_cd', name: 'CI/CD', covers: 'Jenkins, GitHub Actions, Azure DevOps' },
+      { id: 'containers', name: 'Containers', covers: 'Docker, Kubernetes' },
+      { id: 'infrastructure_as_code', name: 'Infrastructure as Code', covers: 'Terraform, Bicep' },
+    ],
+  },
+  {
+    id: 'agilescrum',
+    name: 'Agile / Scrum',
+    color: '#2E308E',
+    bg: 'linear-gradient(90deg,#2E308E,#7373D8)',
+    skills: [
+      { id: 'scrum', name: 'Scrum', covers: 'Sprint planning, standups, retrospectives' },
+      { id: 'kanban', name: 'Kanban', covers: 'Flow management' },
+      { id: 'agile_practices', name: 'Agile Practices', covers: 'Agile delivery' },
+    ],
+  },
+  {
+    id: 'cloudinfra',
+    name: 'Cloud & Infra',
+    color: '#2F78C4',
+    bg: 'linear-gradient(90deg,#2F78C4,#16A34A)',
+    skills: [
+      { id: 'cloud_platforms', name: 'Cloud Platforms', covers: 'AWS, Azure, GCP' },
+      { id: 'networking', name: 'Networking', covers: 'VPC, subnetting, load balancing' },
+      { id: 'monitoring', name: 'Monitoring', covers: 'Observability, logging, alerting' },
+    ],
+  },
+  {
+    id: 'cybersecuritystack',
+    name: 'Cybersecurity',
+    color: '#B81F2D',
+    bg: 'linear-gradient(90deg,#B81F2D,#7373D8)',
+    skills: [
+      { id: 'appsec', name: 'Application Security', covers: 'OWASP, secure coding' },
+      { id: 'iam', name: 'Identity and Access Management', covers: 'IAM, SSO, MFA' },
+      { id: 'threat_modeling', name: 'Threat Modeling', covers: 'Risk analysis and mitigation' },
+    ],
+  },
+  {
     id: 'aigenaiaagentic',
     name: 'AI, GenAI, Agentic AI',
     color: '#06C7CC',
@@ -542,7 +630,8 @@ const getStackSkillIds = (stackIds: string[]) =>
 
 const getEmployeeStackPercentage = (employee: ManagerEmployee, stackIds: string[]) => {
   const stackSkillIds = getStackSkillIds(stackIds);
-  const ratedEntries = stackSkillIds
+  const candidateSkillIds = Array.from(new Set([...stackIds, ...stackSkillIds]));
+  const ratedEntries = candidateSkillIds
     .map((skillId) => employee.skills[skillId])
     .filter((score): score is number => score !== undefined && score > 0)
     .map((score) => Math.min(score, MAX_RATING));
@@ -600,6 +689,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
   const [managerCategory, setManagerCategory] = useState('');
   const [managerRatingSkill, setManagerRatingSkill] = useState('');
   const [managerRatingMin, setManagerRatingMin] = useState('4');
+  const [managerPageTab, setManagerPageTab] = useState<'dashboard' | 'search'>('dashboard');
 
   useEffect(() => {
     let cancelled = false;
@@ -658,7 +748,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
 
   const saveProfile = async () => {
     if (!profile.name || !profile.grade || !profile.designation || !profile.location) {
-      showToast('Please enter your name, grade, designation, and location');
+      showToast('Please enter your name, grade, role, and location');
       return;
     }
 
@@ -752,6 +842,36 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
+
+  const normalizeSkillLabel = (skillId: string) =>
+    skillId
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+
+  const stripRatingSuffix = (text: string) =>
+    text
+      .split(',')
+      .map((item) => item.trim().replace(/\s*:\s*\d+(?:\.\d+)?\s*$/g, ''))
+      .filter(Boolean)
+      .join(', ');
+
+  const getSkillCoverText = (skillId: string, employee?: ManagerEmployee) => {
+    const backendCover = employee?.skillCovers?.[skillId]?.trim();
+    if (backendCover) {
+      return stripRatingSuffix(backendCover);
+    }
+
+    const skill = ALL_SKILLS.find((item) => item.id === skillId);
+    if (!skill) {
+      return normalizeSkillLabel(skillId);
+    }
+
+    const covers = coverOptions(skill.covers);
+    return covers.length ? covers.join(', ') : skill.name;
+  };
 
   const getSkillCoverNames = (skill: { id: string; name: string; covers?: string }) =>
     skill.name === 'Others' ? [primaryCovers[skill.id] || 'Custom cover'] : coverOptions(skill.covers);
@@ -927,7 +1047,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     pdf.text(reportTitle, margin, 34);
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
-    pdf.text('Full Stack Educator Platform', margin, 54);
+    pdf.text('Full Stack Educator Skillmap', margin, 54);
 
     autoTable(pdf, {
       startY: 112,
@@ -1037,7 +1157,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
   const downloadManagerReports = () => {
     const workbook = XLSX.utils.book_new();
 
-    const overviewRows = managerVisibleEmployees.map((employee, index) => {
+    const overviewRows = managerEmployees.map((employee, index) => {
       const metrics = getEmployeeMetrics(employee);
       const submittedOn = employee.submittedAt
         ? new Date(employee.submittedAt).toLocaleDateString(undefined, {
@@ -1065,7 +1185,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     const overviewSheet = XLSX.utils.json_to_sheet(overviewRows);
     XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Manager Overview');
 
-    managerVisibleEmployees.forEach((employee, index) => {
+    managerEmployees.forEach((employee, index) => {
       const metrics = getEmployeeMetrics(employee);
       const submittedOn = employee.submittedAt
         ? new Date(employee.submittedAt).toLocaleDateString(undefined, {
@@ -1161,10 +1281,20 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
       ) ?? false);
     const matchesSkills =
       !skillsText ||
-      Object.keys(employee.skills).some((skillId) => {
-        const skillName = SKILL_NAME_BY_ID[skillId] || skillId;
-        return skillName.toLowerCase().includes(skillsText);
-      });
+      (() => {
+        const coreSkills = metrics.topSkills.filter((skill) => {
+          const normalizedSkillId = skill.skillId.trim().toLowerCase();
+          return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
+        });
+        const highestRating = coreSkills.length ? Math.max(...coreSkills.map((skill) => skill.score)) : 0;
+        const coreSkillsText = coreSkills
+          .filter((skill) => skill.score === highestRating)
+          .map((skill) => getSkillCoverText(skill.skillId, employee))
+          .join(' ')
+          .toLowerCase();
+
+        return coreSkillsText.includes(skillsText);
+      })();
     const digitalStackScore = getEmployeeStackPercentage(employee, DIGITAL_STACK_GROUP_IDS);
     const aiStackScore = getEmployeeStackPercentage(employee, AI_STACK_GROUP_IDS);
     const matchesDigitalStackScore = !digitalStackThreshold || digitalStackScore >= digitalStackThreshold;
@@ -1194,7 +1324,15 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     );
   });
 
-  const managerVisibleEmployees = [...managerFilteredEmployees]
+  const managerSearchEmployees = [...managerFilteredEmployees]
+    .sort((a, b) => {
+      const metricsA = getEmployeeMetrics(a);
+      const metricsB = getEmployeeMetrics(b);
+      return metricsB.totalScore - metricsA.totalScore || metricsB.percentage - metricsA.percentage;
+    })
+    ;
+
+  const managerTopEmployees = [...managerEmployees]
     .sort((a, b) => {
       const metricsA = getEmployeeMetrics(a);
       const metricsB = getEmployeeMetrics(b);
@@ -1287,31 +1425,31 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
         : 0,
     },
   ];
-  const analyticsPractitionerCounts = STACKS_WITH_OTHERS.map((stack) => ({
-    name:
-      {
-        programming: 'Prog',
-        mobile: 'Mobile',
-        frontend: 'Front-end',
-        backend: 'Back-end',
-        database: 'DB',
-        api: 'API',
-        architecture: 'Arch',
-        testing: 'QA',
-        devopsstack: 'DevOps',
-        agilescrum: 'Agile',
-        cloudinfra: 'Cloud',
-        cybersecuritystack: 'Cyber',
-        dataengml: 'Data Engg',
-        industryplatforms: 'Industry',
-        aigenaiaagentic: 'AI',
-        voiceaccent: 'V&A',
-        corebehavioural: 'BH',
-      }[stack.id] || stack.name,
-    practitioners: analyticsEmployees.reduce((count, employee) => {
-      const hasPractitioner = stack.skills.some((skill) => !skill.id.toLowerCase().endsWith('_others') && (employee.skills[skill.id] || 0) >= 2);
-      return count + (hasPractitioner ? 1 : 0);
-    }, 0),
+  const practitionerCategoryGroups = [
+    { name: 'Prog Lang', skillIds: getStackSkillIds(['programming']) },
+    { name: 'Mobile', skillIds: getStackSkillIds(['mobile']) },
+    { name: 'Frontend', skillIds: getStackSkillIds(['frontend']) },
+    { name: 'Backend', skillIds: getStackSkillIds(['backend']) },
+    { name: 'DB', skillIds: ['database'] },
+    { name: 'API', skillIds: ['api'] },
+    { name: 'Arch', skillIds: ['architecture'] },
+    { name: 'Testing', skillIds: ['testing'] },
+    { name: 'DevOps', skillIds: ['devopsstack'] },
+    { name: 'Agile/Scrum', skillIds: ['agilescrum'] },
+    { name: 'Cloud & Infra', skillIds: ['cloudinfra'] },
+    { name: 'Cybersecurity', skillIds: ['cybersecuritystack'] },
+    { name: 'Data Engg', skillIds: ['de_data_engineering'] },
+    { name: 'Analytics & ML', skillIds: ['de_machine_learning', 'de_data_analytics', 'de_big_data', 'de_database'] },
+    { name: 'Industry', skillIds: getStackSkillIds(['industryplatforms']) },
+    { name: 'AI', skillIds: ['aigenaiaagentic', 'ai_core_tech', 'genai_llms', 'genai_prompt_engineering', 'genai_context_handling', 'agentic_langchain', 'agentic_langgraph', 'agentic_crewai', 'agentic_autogpt'] },
+  ] as const;
+
+  const analyticsPractitionerCounts = practitionerCategoryGroups.map((category) => ({
+    name: category.name,
+    practitioners: analyticsEmployees.reduce(
+      (count, employee) => count + (category.skillIds.some((skillId) => (employee.skills[skillId] || 0) >= 2) ? 1 : 0),
+      0
+    ),
   }));
 
   const managerCategoryOptions = STACKS_WITH_OTHERS.map((stack) => ({ id: stack.id, name: stack.name }));
@@ -1326,10 +1464,9 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
     <>
       <div className="topbar">
         <div className="brand">
-          <div className="brand-mark">HM</div>
+          <div className="brand-mark">SM</div>
           <div>
-            <div className="brand-text">FSE Skill Heatmap</div>
-            <div className="brand-sub">Full Stack Educator Platform</div>
+            <div className="brand-text">Full Stack Educator Skillmap</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1417,13 +1554,17 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                     </div>
                     <div className="field-row2">
                       <div className="field">
-                        <label>Designation</label>
-                        <input
+                        <label>Role</label>
+                        <select
                           name="designation"
                           value={profile.designation}
                           onChange={handleProfileChange}
-                          placeholder="e.g. Full Stack Educator"
-                        />
+                        >
+                          <option value="">Select role</option>
+                          <option value="FSE">FSE</option>
+                          <option value="PFSE">PFSE</option>
+                          <option value="SFSE">SFSE</option>
+                        </select>
                       </div>
                       <div className="field">
                         <label>Location</label>
@@ -1466,7 +1607,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                     </div>
                     <div className="pstat">
                       <div className="v">{strong.length}</div>
-                      <div className="l">Practitioner</div>
+                      <div className="l">Practitioner skill</div>
                     </div>
                   </div>
                 </div>
@@ -1516,28 +1657,49 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                         </div>
                       </div>
                       <div className="card-body">
+                        <div className="skill-header-row">
+                          <table className="skill-table-header">
+                            <colgroup>
+                              <col style={{ width: '115px' }} />
+                              <col style={{ width: '175px' }} />
+                              <col style={{ width: '60px' }} />
+                              <col style={{ width: '60px' }} />
+                              <col style={{ width: '60px' }} />
+                              <col style={{ width: '60px' }} />
+                              <col style={{ width: '60px' }} />
+                            </colgroup>
+                            <thead>
+                              <tr>
+                                <th>Category</th>
+                                <th>Skill</th>
+                                <th>0</th>
+                                <th>1</th>
+                                <th>2</th>
+                                <th>3</th>
+                                <th>4</th>
+                              </tr>
+                              <tr>
+                                <th></th>
+                                <th></th>
+                                <th style={{ fontSize: '8px', fontWeight: 600 }}>No knowledge</th>
+                                <th style={{ fontSize: '8px', fontWeight: 600 }}>Aware</th>
+                                <th style={{ fontSize: '8px', fontWeight: 600 }}>Practitioner</th>
+                                <th style={{ fontSize: '8px', fontWeight: 600 }}>Advanced</th>
+                                <th style={{ fontSize: '8px', fontWeight: 600 }}>Expert</th>
+                              </tr>
+                            </thead>
+                          </table>
+                        </div>
                         <table className="skills-tbl">
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: 'left', minWidth: '120px' }}>Skill</th>
-                              <th style={{ textAlign: 'left', minWidth: '200px' }}>Covers</th>
-                              <th className="rating-col" style={{ textAlign: 'center' }}>0</th>
-                              <th className="rating-col" style={{ textAlign: 'center' }}>1</th>
-                              <th className="rating-col" style={{ textAlign: 'center' }}>2</th>
-                              <th className="rating-col" style={{ textAlign: 'center' }}>3</th>
-                              <th className="rating-col" style={{ textAlign: 'center' }}>4</th>
-                            </tr>
-                          </thead>
-                          <thead style={{ background: 'var(--gray-ltest)', fontSize: '9px', color: 'var(--gray-md)', fontWeight: '600' }}>
-                            <tr>
-                              <th colSpan={2}></th>
-                              <th style={{ textAlign: 'center' }}>No knowledge</th>
-                              <th style={{ textAlign: 'center' }}>Aware</th>
-                              <th style={{ textAlign: 'center' }}>Practitioner</th>
-                              <th style={{ textAlign: 'center' }}>Advanced</th>
-                              <th style={{ textAlign: 'center' }}>Expert</th>
-                            </tr>
-                          </thead>
+                          <colgroup>
+                            <col style={{ width: '115px' }} />
+                            <col style={{ width: '175px' }} />
+                            <col style={{ width: '60px' }} />
+                            <col style={{ width: '60px' }} />
+                            <col style={{ width: '60px' }} />
+                            <col style={{ width: '60px' }} />
+                            <col style={{ width: '60px' }} />
+                          </colgroup>
                           <tbody>
                             {activeStack.skills.filter((skill) => skill.name !== 'Others').map((skill) => (
                               (() => {
@@ -1845,20 +2007,16 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
           <div className="layout">
             <div className="ph-eyebrow">Dashboard</div>
             <div className="ph-title">Manager Dashboard</div>
-            <div className="ph-desc">Team skill assessment overview with employee search and rating filters.</div>
 
             <div className="card" style={{ marginTop: '1rem' }}>
               <div className="card-body" style={{ padding: 0 }}>
                 <div style={{ padding: '1rem 1rem 0.25rem' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gray-md)' }}>
-                    Summary
-                  </div>
                   <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
-                    Average Score
+                    Average Score Summary
                   </div>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
-                  <table className="manager-table">
+                  <table className="manager-table top-fse-table" style={{ width: '100%' }}>
                     <thead>
                       <tr>
                         {managerSummaryColumns.map((column) => (
@@ -1893,16 +2051,16 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                   <table className="manager-table">
                     <thead>
                       <tr>
-                        <th>Name</th>
-                        <th>Employee ID</th>
-                        <th>Designation</th>
-                        <th>Location</th>
+                        <th style={{ textAlign: 'center' }}>Name</th>
+                        <th style={{ textAlign: 'center' }}>Employee ID</th>
+                        <th style={{ textAlign: 'center' }}>Role</th>
+                        <th style={{ textAlign: 'center' }}>Location</th>
                         <th style={{ textAlign: 'center' }}>Score</th>
-                        <th>Core Skills</th>
+                        <th style={{ textAlign: 'center' }}>Core Skills</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {managerVisibleEmployees.map((employee) => {
+                      {managerTopEmployees.map((employee) => {
                         const metrics = getEmployeeMetrics(employee);
                         const displayName = employee.name
                           .split(/\s+/)
@@ -1912,16 +2070,16 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
 
                         return (
                           <tr key={employee.id}>
-                            <td>
-                              <div style={{ display: 'grid', gap: '4px' }}>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'grid', gap: '4px', justifyItems: 'center' }}>
                                 <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
                               </div>
                             </td>
-                            <td style={{ fontWeight: 600, color: 'var(--gray-dk)' }}>{employee.employeeId}</td>
-                            <td>{employee.designation || '-'}</td>
-                            <td>{employee.location || '-'}</td>
+                            <td style={{ fontWeight: 600, color: 'var(--gray-dk)', textAlign: 'center' }}>{employee.employeeId}</td>
+                            <td style={{ textAlign: 'center' }}>{employee.designation || '-'}</td>
+                            <td style={{ textAlign: 'center' }}>{employee.location || '-'}</td>
                             <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--primary)' }}>{metrics.percentage}%</td>
-                            <td>
+                            <td style={{ textAlign: 'center' }}>
                               <span style={{ fontSize: '11px', color: 'var(--gray-dk)', lineHeight: 1.5 }}>
                                 {(() => {
                                   const coreSkills = metrics.topSkills.filter((skill) => {
@@ -1931,7 +2089,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                                   const highestRating = coreSkills.length ? Math.max(...coreSkills.map((skill) => skill.score)) : 0;
                                   return coreSkills
                                     .filter((skill) => skill.score === highestRating)
-                                    .map((skill) => SKILL_NAME_BY_ID[skill.skillId] || skill.skillId)
+                                    .map((skill) => getSkillCoverText(skill.skillId, employee))
                                     .join(', ');
                                 })() || '-'}
                               </span>
@@ -1945,141 +2103,15 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
               </div>
             </div>
 
-            <div className="card" style={{ marginTop: '1.5rem' }}>
-              <div className="card-body">
-                <div style={{ padding: '0 0 0.75rem' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
-                    Search Educators
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-                  <div className="field">
-                    <label>Name</label>
-                    <input
-                      type="text"
-                      value={managerSearch}
-                      onChange={(e) => setManagerSearch(e.target.value)}
-                      placeholder="Search educator name"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>EMPLOYEE ID</label>
-                    <input
-                      type="text"
-                      value={managerEmployeeId}
-                      onChange={(e) => setManagerEmployeeId(e.target.value)}
-                      placeholder="Employee ID"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>DESIGNATION</label>
-                    <input
-                      type="text"
-                      value={managerDesignation}
-                      onChange={(e) => setManagerDesignation(e.target.value)}
-                      placeholder="Designation"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>LOCATION</label>
-                    <input
-                      type="text"
-                      value={managerLocation}
-                      onChange={(e) => setManagerLocation(e.target.value)}
-                      placeholder="Location"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>SCORE</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={managerScore}
-                      onChange={(e) => setManagerScore(e.target.value)}
-                      placeholder="Minimum score"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Skill Category</label>
-                    <select value={managerSkillCategory} onChange={(e) => setManagerSkillCategory(e.target.value)}>
-                      <option value="">All categories</option>
-                      {STACKS_WITH_OTHERS.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>Skills</label>
-                    <input
-                      type="text"
-                      value={managerSkills}
-                      onChange={(e) => setManagerSkills(e.target.value)}
-                      placeholder="Search skills"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>Digital AI stack score</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={managerDigitalStackScore}
-                      onChange={(e) => setManagerDigitalStackScore(e.target.value)}
-                      placeholder="Minimum digital stack score"
-                    />
-                  </div>
-                  <div className="field">
-                    <label>AI stack score</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={managerAiStackScore}
-                      onChange={(e) => setManagerAiStackScore(e.target.value)}
-                      placeholder="Minimum AI stack score"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="card" style={{ marginTop: '1rem' }}>
               <div className="card-body">
                 <div style={{ padding: '0 0 0.75rem' }}>
                   <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
                     Analytics
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--gray-md)', marginTop: '4px' }}>
-                    Visual summary of educator scores, category averages, and practitioner coverage.
-                  </div>
                 </div>
                 <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-                  <div style={{ border: '1px solid var(--gray-ltr)', borderRadius: '12px', padding: '12px', background: 'white' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
-                      Educator Score Chart
-                    </div>
-                    <div style={{ width: '100%', height: '280px' }}>
-                      <ResponsiveContainer>
-                        <BarChart data={analyticsEducatorScores} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" angle={-20} textAnchor="end" interval={0} height={60} />
-                          <YAxis domain={[0, 100]} />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="score" name="Score %" radius={[8, 8, 0, 0]} fill="#2F78C4">
-                            {analyticsEducatorScores.map((entry, index) => (
-                              <Cell key={entry.name} fill={index % 2 === 0 ? '#2F78C4' : '#06C7CC'} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div style={{ border: '1px solid var(--gray-ltr)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                  <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
                       Skill Category Averages
                     </div>
@@ -2101,7 +2133,7 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
                     </div>
                   </div>
 
-                  <div style={{ border: '1px solid var(--gray-ltr)', borderRadius: '12px', padding: '12px', background: 'white' }}>
+                  <div style={{ border: '1px solid rgba(0, 0, 72, 0.28)', borderRadius: '12px', padding: '12px', background: 'white' }}>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '10px' }}>
                       Practitioner Count by Skill Family
                     </div>
@@ -2122,15 +2154,198 @@ function HeatMapPage({ initialMode = 'educator' }: { initialMode?: 'educator' | 
               </div>
             </div>
 
-            {!managerVisibleEmployees.length && (
-              <div className="card" style={{ marginTop: '1rem' }}>
-                <div className="card-body">
-                  <p style={{ color: 'var(--gray-md)', textAlign: 'center', padding: '2rem' }}>
-                    No employees match the current filters.
-                  </p>
+            <div className="section-tabs" style={{ marginTop: '1.5rem' }}>
+              <button
+                className={`section-tab ${managerPageTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setManagerPageTab('dashboard')}
+              >
+                Dashboard
+              </button>
+              <button
+                className={`section-tab ${managerPageTab === 'search' ? 'active' : ''}`}
+                onClick={() => setManagerPageTab('search')}
+              >
+                Search Educators
+              </button>
+            </div>
+
+            {managerPageTab === 'search' ? (
+              <>
+                <div className="card" style={{ marginTop: '1rem' }}>
+                  <div className="card-body">
+                    <div style={{ padding: '0 0 0.75rem' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                        Search Educators
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                      <div className="field">
+                        <label>Name</label>
+                        <input
+                          type="text"
+                          value={managerSearch}
+                          onChange={(e) => setManagerSearch(e.target.value)}
+                          placeholder="Search educator name"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Employee Id</label>
+                        <input
+                          type="text"
+                          value={managerEmployeeId}
+                          onChange={(e) => setManagerEmployeeId(e.target.value)}
+                          placeholder="Employee ID"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Role</label>
+                        <select value={managerDesignation} onChange={(e) => setManagerDesignation(e.target.value)}>
+                          <option value="">All roles</option>
+                          <option value="FSE">FSE</option>
+                          <option value="PFSE">PFSE</option>
+                          <option value="SFSE">SFSE</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Location</label>
+                        <input
+                          type="text"
+                          value={managerLocation}
+                          onChange={(e) => setManagerLocation(e.target.value)}
+                          placeholder="Location"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Score</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={managerScore}
+                          onChange={(e) => setManagerScore(e.target.value)}
+                          placeholder="Minimum score"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Skill Category</label>
+                        <select value={managerSkillCategory} onChange={(e) => setManagerSkillCategory(e.target.value)}>
+                          <option value="">All categories</option>
+                          {STACKS_WITH_OTHERS.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Skills</label>
+                        <input
+                          type="text"
+                          value={managerSkills}
+                          onChange={(e) => setManagerSkills(e.target.value)}
+                          placeholder="Search skills"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Digital Ai Stack Score</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={managerDigitalStackScore}
+                          onChange={(e) => setManagerDigitalStackScore(e.target.value)}
+                          placeholder="Minimum digital stack score"
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Ai Stack Score</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={managerAiStackScore}
+                          onChange={(e) => setManagerAiStackScore(e.target.value)}
+                          placeholder="Minimum AI stack score"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+
+                {managerSearchEmployees.length ? (
+                  <div className="card" style={{ marginTop: '1rem' }}>
+                    <div className="card-body" style={{ padding: 0 }}>
+                      <div style={{ padding: '1rem 1rem 0.25rem' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>
+                          Search Results
+                        </div>
+                      </div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="manager-table">
+                          <thead>
+                            <tr>
+                              <th style={{ textAlign: 'center' }}>Name</th>
+                              <th style={{ textAlign: 'center' }}>Employee Id</th>
+                              <th style={{ textAlign: 'center' }}>Role</th>
+                              <th style={{ textAlign: 'center' }}>Location</th>
+                              <th style={{ textAlign: 'center' }}>Score</th>
+                              <th style={{ textAlign: 'center' }}>Core Skills</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {managerSearchEmployees.map((employee) => {
+                              const metrics = getEmployeeMetrics(employee);
+                              const displayName = employee.name
+                                .split(/\s+/)
+                                .filter(Boolean)
+                                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                                .join(' ');
+
+                              return (
+                                <tr key={employee.id}>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <div style={{ display: 'grid', gap: '4px', justifyItems: 'center' }}>
+                                      <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '13px' }}>{displayName}</div>
+                                    </div>
+                                  </td>
+                                  <td style={{ fontWeight: 600, color: 'var(--gray-dk)', textAlign: 'center' }}>{employee.employeeId}</td>
+                                  <td style={{ textAlign: 'center' }}>{employee.designation || '-'}</td>
+                                  <td style={{ textAlign: 'center' }}>{employee.location || '-'}</td>
+                                  <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--primary)' }}>{metrics.percentage}%</td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <span style={{ fontSize: '11px', color: 'var(--gray-dk)', lineHeight: 1.5 }}>
+                                      {(() => {
+                                        const coreSkills = metrics.topSkills.filter((skill) => {
+                                          const normalizedSkillId = skill.skillId.trim().toLowerCase();
+                                          return !normalizedSkillId.endsWith('_others') && normalizedSkillId !== 'others';
+                                        });
+                                        const highestRating = coreSkills.length ? Math.max(...coreSkills.map((skill) => skill.score)) : 0;
+                                        return coreSkills
+                                          .filter((skill) => skill.score === highestRating)
+                                          .map((skill) => getSkillCoverText(skill.skillId, employee))
+                                          .join(', ');
+                                      })() || '-'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="card" style={{ marginTop: '1rem' }}>
+                    <div className="card-body">
+                      <p style={{ color: 'var(--gray-md)', textAlign: 'center', padding: '2rem' }}>
+                        No employees match the current filters.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
 
             <div className="btn-row" style={{ marginTop: '1.25rem' }}>
               <button className="btn btn-primary" onClick={downloadManagerReports}>

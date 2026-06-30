@@ -47,7 +47,7 @@ function LoginPage() {
       <div className="auth-orb auth-orb-b" />
       <div className="auth-shell">
         <section className="auth-hero">
-          <div className="auth-badge">Full Stack Educator Platform</div>
+          <div className="auth-badge">Full Stack Educator Skillmap</div>
           <h1>Learn, rate, and grow across every stack.</h1>
           <p>
             A single workspace for educators and admins to manage skills, review capability gaps,
@@ -83,7 +83,7 @@ function LoginPage() {
                 <div className="auth-card-kicker">Welcome back</div>
                 <h2>Sign in to continue</h2>
               </div>
-              <div className="auth-card-avatar">HM</div>
+              <div className="auth-card-avatar">SM</div>
             </div>
 
             {success && <div className="auth-success">{success}</div>}

@@ -784,16 +784,74 @@ html,
 /* SKILLS TABLE */
 .skills-tbl {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
+}
+
+.skill-header-row {
+  width: 100%;
+}
+
+.skill-table-header {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background: var(--gray-ltest);
+  border-bottom: 1px solid var(--gray-ltr);
+}
+
+.skill-table-header th {
+  padding: 6px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  text-align: center;
+  min-width: 0;
+}
+
+.skill-table-header thead tr:first-child th:nth-child(-n + 2) {
+  text-align: left;
+  padding-left: 10px;
+}
+
+.skill-table-header thead tr:first-child th:nth-child(n + 3) {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.skill-table-header thead tr:first-child th:nth-child(n + 3),
+.skill-table-header thead tr:last-child th:nth-child(n + 3) {
+  text-align: center;
+  transform: translateX(-32px);
+}
+
+.skill-table-header thead tr:last-child th:nth-child(n + 3) {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  padding-top: 0;
+  padding-bottom: 6px;
+}
+
+.skill-table-header th:empty {
+  padding: 0;
+  min-height: 0;
 }
 
 .skills-tbl th {
   padding: 6px 10px;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--gray-md);
+  color: var(--primary);
   background: var(--gray-ltest);
   text-align: left;
   border-bottom: 1px solid var(--gray-ltr);
@@ -839,11 +897,11 @@ html,
 
 .skills-tbl th.rating-col,
 .skills-tbl td.rating-col {
-  width: 52px;
-  min-width: 52px;
+  width: 60px;
+  min-width: 60px;
   text-align: center;
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .skills-tbl tr:last-child td {
@@ -908,9 +966,11 @@ html,
 
 .manager-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: white;
   table-layout: fixed;
+  border: 1px solid rgba(0, 0, 72, 0.28);
 }
 
 .manager-table thead th {
@@ -925,16 +985,28 @@ html,
   letter-spacing: 0.05em;
   padding: 12px 14px;
   white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, 0.42);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.42);
 }
 
 .manager-table tbody td {
   padding: 12px 14px;
-  border-top: 1px solid var(--gray-ltr);
+  border-right: 1px solid rgba(0, 0, 72, 0.34);
+  border-bottom: 1px solid rgba(0, 0, 72, 0.34);
   vertical-align: top;
   font-size: 12px;
   color: var(--gray-dk);
   word-break: break-word;
   white-space: normal;
+}
+
+.manager-table thead th:first-child,
+.manager-table tbody td:first-child {
+  border-left: 1px solid rgba(0, 0, 72, 0.34);
+}
+
+.manager-table thead tr:first-child th {
+  border-top: 1px solid rgba(0, 0, 72, 0.34);
 }
 
 .manager-table tbody tr:nth-child(even) {
@@ -943,6 +1015,15 @@ html,
 
 .manager-table tbody tr:hover {
   background: #f4f8ff;
+}
+
+.top-fse-table thead th,
+.top-fse-table tbody td {
+  text-align: center;
+}
+
+.top-fse-table tbody td:first-child > div {
+  justify-items: center;
 }
 
 .hint {
